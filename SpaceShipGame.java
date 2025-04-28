@@ -1,14 +1,13 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Random;
-import javax.sound.sampled.*;
+
 
 public class SpaceShipGame extends JPanel implements KeyListener, MouseListener, MouseMotionListener, ActionListener {
-    private boolean firing, paused;
+    private boolean firing, paused, gameOver;
     private boolean up, down, left, right;
     private List<Bullet> bullets = new ArrayList<>();
     private List<Bullet> enemyBullets = new ArrayList<>();
@@ -20,9 +19,14 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
     private int mouseX, mouseY;
     private int offsetX, offsetY;
     private int score = 0;
+    private int hp = 100;
+
+    private double velocityX = 0, velocityY = 0;
+    private final double ACCELERATION = 0.3;
+    private final double MAX_SPEED = 10;
 
     public SpaceShipGame() {
-        JFrame frame = new JFrame("戰艦駕駛 - 真3D版");
+        JFrame frame = new JFrame("SpaceShip 3D FPS");
         frame.setSize(1280, 720);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.add(this);
@@ -101,20 +105,110 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 24));
         g.drawString("Score: " + score, 60, 40);
+        g.drawString("HP: " + hp, 60, 70);
+
+        g.setFont(new Font("Arial", Font.PLAIN, 18));
+        g.drawString("[W] Thrust [S] Brake [A] Left [D] Right [Mouse] Aim [Click] Fire [ESC] Pause", 200, getHeight() - 20);
 
         if (paused) {
             g.setFont(new Font("Arial", Font.BOLD, 48));
             g.drawString("PAUSED", getWidth() / 2 - 100, getHeight() / 2);
         }
+
+        if (gameOver) {
+            g.setFont(new Font("Arial", Font.BOLD, 48));
+            g.drawString("GAME OVER", getWidth() / 2 - 150, getHeight() / 2);
+        }
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (paused) {
+        if (paused || gameOver) {
             repaint();
             return;
         }
 
+        if (up) {
+            double angle = Math.atan2(mouseY - 360, mouseX - 640);
+            velocityX += ACCELERATION * Math.cos(angle);
+            velocityY += ACCELERATION * Math.sin(angle);
+            double speed = Math.hypot(velocityX, velocityY);
+            if (speed > MAX_SPEED) {
+                velocityX = (velocityX / speed) * MAX_SPEED;
+                velocityY = (velocityY / speed) * MAX_SPEED;
+            }
+        }
+        if (down) {
+            velocityX *= 0.95;
+            velocityY *= 0.95;
+        }
+        if (left) offsetX -= 5;
+        if (right) offsetX += 5;
+
+        offsetX += velocityX;
+        offsetY += velocityY;
+
+        updateGameObjects();
+        repaint();
+    }
+
+    private void fireBullet() {
+        bullets.add(new Bullet(640, 360, mouseX, mouseY));
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) paused = !paused;
+        if (e.getKeyCode() == KeyEvent.VK_W) up = true;
+        if (e.getKeyCode() == KeyEvent.VK_S) down = true;
+        if (e.getKeyCode() == KeyEvent.VK_A) left = true;
+        if (e.getKeyCode() == KeyEvent.VK_D) right = true;
+    }
+    @Override
+    public void keyReleased(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_W) up = false;
+        if (e.getKeyCode() == KeyEvent.VK_S) down = false;
+        if (e.getKeyCode() == KeyEvent.VK_A) left = false;
+        if (e.getKeyCode() == KeyEvent.VK_D) right = false;
+    }
+    @Override public void keyTyped(KeyEvent e) {}
+    @Override public void mouseMoved(MouseEvent e) { mouseX = e.getX(); mouseY = e.getY(); }
+    @Override public void mouseDragged(MouseEvent e) {}
+    @Override public void mouseClicked(MouseEvent e) {}
+    @Override public void mousePressed(MouseEvent e) { firing = true; if (!paused) fireTimer.start(); }
+    @Override public void mouseReleased(MouseEvent e) { firing = false; fireTimer.stop(); }
+    @Override public void mouseEntered(MouseEvent e) {}
+    @Override public void mouseExited(MouseEvent e) {}
+
+    public static void main(String[] args) { new SpaceShipGame(); }
+
+    // --- 下面是子類別和更新邏輯 ---
+
+    class Bullet { int x, y; double dx, dy;
+        public Bullet(int startX, int startY, int targetX, int targetY) {
+            x = startX; y = startY;
+            double angle = Math.atan2(targetY - startY, targetX - startX);
+            dx = 10 * Math.cos(angle);
+            dy = 10 * Math.sin(angle);
+        }
+        public void move() { x += dx; y += dy; }
+    }
+
+    class Enemy { double x, y, z;
+        public Enemy(double x, double y) { this.x = x; this.y = y; this.z = 1000; }
+        public void move() { z -= 5; }
+    }
+
+    class Star { int x, y, z;
+        public Star(int x, int y, int z) { this.x = x; this.y = y; this.z = z; }
+    }
+
+    class Explosion { int x, y, radius = 10;
+        public Explosion(int x, int y) { this.x = x; this.y = y; }
+        public void update() { radius += 2; }
+    }
+
+    private void updateGameObjects() {
         for (Star s : stars) {
             s.z -= 5;
             if (s.z <= 50) {
@@ -123,196 +217,57 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
                 s.z = random.nextInt(800) + 200;
             }
         }
-
         if (random.nextInt(100) < 3) {
-            double startX = getWidth() / 2 + random.nextInt(400) - 200;
-            double startY = getHeight() / 2 + random.nextInt(300) - 150;
+            double startX = 640 + random.nextInt(400) - 200;
+            double startY = 360 + random.nextInt(300) - 150;
             enemies.add(new Enemy(startX, startY));
         }
-
-        for (Enemy e1 : enemies) {
-            e1.move();
+        for (Enemy e : enemies) {
+            e.move();
             if (random.nextInt(100) < 2) {
-                enemyBullets.add(new Bullet((int)(640 + (e1.x - 640 + offsetX) * 300 / e1.z), (int)(360 + (e1.y - 360 + offsetY) * 300 / e1.z), 640 + offsetX, 360 + offsetY));
+                enemyBullets.add(new Bullet(
+                    (int)(640 + (e.x - 640 + offsetX) * 300 / e.z),
+                    (int)(360 + (e.y - 360 + offsetY) * 300 / e.z),
+                    640, 360));
             }
         }
-
-        for (Bullet b : bullets) {
-            b.move();
-        }
-
-        for (Bullet b : enemyBullets) {
-            b.move();
-        }
-
-        for (Explosion ex : explosions) {
-            ex.update();
-        }
+        bullets.forEach(Bullet::move);
+        enemyBullets.forEach(Bullet::move);
+        explosions.forEach(Explosion::update);
 
         bullets.removeIf(b -> b.x < 0 || b.x > getWidth() || b.y < 0 || b.y > getHeight());
         enemyBullets.removeIf(b -> b.x < 0 || b.x > getWidth() || b.y < 0 || b.y > getHeight());
-        enemies.removeIf(e1 -> e1.z <= 50);
+        enemies.removeIf(e -> e.z <= 50);
         explosions.removeIf(ex -> ex.radius > 50);
 
         List<Enemy> enemiesToRemove = new ArrayList<>();
         List<Bullet> bulletsToRemove = new ArrayList<>();
 
         for (Bullet b : bullets) {
-            for (Enemy e1 : enemies) {
-                double scale = 300 / e1.z;
-                int ex = (int)(640 + (e1.x - 640 + offsetX) * scale);
-                int ey = (int)(360 + (e1.y - 360 + offsetY) * scale);
+            for (Enemy e : enemies) {
+                double scale = 300 / e.z;
+                int ex = (int)(640 + (e.x - 640 + offsetX) * scale);
+                int ey = (int)(360 + (e.y - 360 + offsetY) * scale);
                 int size = (int)(20 * scale);
-                double dist = Math.hypot(b.x - ex, b.y - ey);
-                if (dist < size / 2 + 3) {
-                    enemiesToRemove.add(e1);
+                if (Math.hypot(b.x - ex, b.y - ey) < size / 2 + 3) {
+                    enemiesToRemove.add(e);
                     bulletsToRemove.add(b);
                     explosions.add(new Explosion(ex, ey));
-                    playSound("explosion.wav");
                     score += 10;
                 }
             }
         }
-
         enemies.removeAll(enemiesToRemove);
         bullets.removeAll(bulletsToRemove);
 
-        if (up) offsetY -= 5;
-        if (down) offsetY += 5;
-        if (left) offsetX -= 5;
-        if (right) offsetX += 5;
-
-        repaint();
-    }
-
-    private void fireBullet() {
-        bullets.add(new Bullet(640, 360, mouseX, mouseY));
-    }
-
-    private void playSound(String soundFile) {
-        try {
-            Clip clip = AudioSystem.getClip();
-            clip.open(AudioSystem.getAudioInputStream(new File(soundFile)));
-            clip.start();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            paused = !paused;
-            if (!paused && firing) {
-                fireTimer.start();
-            } else {
-                fireTimer.stop();
+        for (Bullet b : enemyBullets) {
+            if (Math.hypot(b.x - 640, b.y - 360) < 20) {
+                hp -= 10;
+                explosions.add(new Explosion(b.x, b.y));
+                b.x = -1000;
+                b.y = -1000;
+                if (hp <= 0) gameOver = true;
             }
-            repaint();
         }
-        if (e.getKeyCode() == KeyEvent.VK_W) up = true;
-        if (e.getKeyCode() == KeyEvent.VK_S) down = true;
-        if (e.getKeyCode() == KeyEvent.VK_A) left = true;
-        if (e.getKeyCode() == KeyEvent.VK_D) right = true;
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_W) up = false;
-        if (e.getKeyCode() == KeyEvent.VK_S) down = false;
-        if (e.getKeyCode() == KeyEvent.VK_A) left = false;
-        if (e.getKeyCode() == KeyEvent.VK_D) right = false;
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) {}
-
-    @Override
-    public void mouseMoved(MouseEvent e) {
-        mouseX = e.getX();
-        mouseY = e.getY();
-    }
-
-    @Override
-    public void mouseDragged(MouseEvent e) {}
-
-    @Override
-    public void mouseClicked(MouseEvent e) {}
-
-    @Override
-    public void mousePressed(MouseEvent e) {
-        firing = true;
-        if (!paused) fireTimer.start();
-    }
-
-    @Override
-    public void mouseReleased(MouseEvent e) {
-        firing = false;
-        fireTimer.stop();
-    }
-
-    @Override
-    public void mouseEntered(MouseEvent e) {}
-
-    @Override
-    public void mouseExited(MouseEvent e) {}
-
-    public static void main(String[] args) {
-        new SpaceShipGame();
-    }
-}
-
-class Bullet {
-    int x, y;
-    double dx, dy;
-
-    public Bullet(int startX, int startY, int targetX, int targetY) {
-        x = startX;
-        y = startY;
-        double angle = Math.atan2(targetY - startY, targetX - startX);
-        dx = 10 * Math.cos(angle);
-        dy = 10 * Math.sin(angle);
-    }
-
-    public void move() {
-        x += dx;
-        y += dy;
-    }
-}
-
-class Enemy {
-    double x, y, z;
-
-    public Enemy(double x, double y) {
-        this.x = x;
-        this.y = y;
-        this.z = 1000;
-    }
-
-    public void move() {
-        z -= 5;
-    }
-}
-
-class Star {
-    int x, y, z;
-
-    public Star(int x, int y, int z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
-}
-
-class Explosion {
-    int x, y, radius = 10;
-
-    public Explosion(int x, int y) {
-        this.x = x;
-        this.y = y;
-    }
-
-    public void update() {
-        radius += 2;
     }
 }
