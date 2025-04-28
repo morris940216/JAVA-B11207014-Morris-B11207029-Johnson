@@ -108,9 +108,11 @@ public class SpaceGame extends JPanel implements ActionListener, KeyListener {
     bullets.removeAll(bulletsToRemove);
     enemies.removeAll(enemiesToRemove);
 
+    int width = Math.max(31, getWidth()); // 至少是31，避免負數
     if (random.nextInt(100) < 2) {
-        enemies.add(new Enemy(random.nextInt(getWidth() - 30), 0));
-    }
+    enemies.add(new Enemy(random.nextInt(width - 30), 0));
+}
+
 
     repaint();
 }
