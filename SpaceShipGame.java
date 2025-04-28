@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Random;
 
 public class SpaceShipGame extends JPanel implements KeyListener, MouseListener, MouseMotionListener, ActionListener {
-    private boolean up, down, left, right, firing, paused;
+    private boolean firing, paused;
     private List<Bullet> bullets = new ArrayList<>();
     private List<Enemy> enemies = new ArrayList<>();
     private Timer timer, fireTimer;
@@ -16,8 +16,8 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
     private int score = 0;
 
     public SpaceShipGame() {
-        JFrame frame = new JFrame("戰艦駕駛 - 自由移動版");
-        frame.setSize(1280, 720); // 改為固定大小，不要全螢幕
+        JFrame frame = new JFrame("戰艦駕駛 - 真3D版");
+        frame.setSize(1280, 720);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.add(this);
 
@@ -26,15 +26,15 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         this.addMouseMotionListener(this);
         this.setFocusable(true);
 
-        timer = new Timer(16, this); // 約60FPS
-        fireTimer = new Timer(1, e -> fireBullet()); // 快速射擊
+        timer = new Timer(16, this);
+        fireTimer = new Timer(50, e -> fireBullet());
         timer.start();
         frame.setVisible(true);
         this.requestFocusInWindow();
         this.requestFocus();
 
         playerX = frame.getWidth() / 2;
-        playerY = frame.getHeight() / 2;
+        playerY = frame.getHeight() - 100;
     }
 
     @Override
@@ -53,7 +53,13 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
 
         g.setColor(Color.RED);
         for (Enemy e : enemies) {
-            g.fillRect(e.x, e.y, 20, 20);
+            double scale = 300 / e.z;
+            int drawX = (int)(640 + (e.x - 640) * scale);
+            int drawY = (int)(360 + (e.y - 360) * scale);
+            int size = (int)(20 * scale);
+            if (size > 0) {
+                g.fillOval(drawX - size/2, drawY - size/2, size, size);
+            }
         }
 
         g.setColor(Color.YELLOW);
@@ -82,18 +88,14 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
             return;
         }
 
-        if (getWidth() > 30 && random.nextInt(100) < 2) {
-            enemies.add(new Enemy(random.nextInt(getWidth() - 100) + 50, -20));
+        if (random.nextInt(100) < 3) {
+            double startX = getWidth() / 2 + random.nextInt(400) - 200;
+            double startY = getHeight() / 2 + random.nextInt(300) - 150;
+            enemies.add(new Enemy(startX, startY));
         }
 
-        int speed = 5;
-        if (up && playerY > 50) playerY -= speed;
-        if (down && playerY < getHeight() - 50) playerY += speed;
-        if (left && playerX > 50) playerX -= speed;
-        if (right && playerX < getWidth() - 50) playerX += speed;
-
         for (Enemy e1 : enemies) {
-            e1.y += 2;
+            e1.move();
         }
 
         for (Bullet b : bullets) {
@@ -101,14 +103,19 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         }
 
         bullets.removeIf(b -> b.x < 0 || b.x > getWidth() || b.y < 0 || b.y > getHeight());
-        enemies.removeIf(e1 -> e1.y > getHeight() + 20);
+        enemies.removeIf(e1 -> e1.z <= 50);
 
         List<Enemy> enemiesToRemove = new ArrayList<>();
         List<Bullet> bulletsToRemove = new ArrayList<>();
 
         for (Bullet b : bullets) {
             for (Enemy e1 : enemies) {
-                if (new Rectangle(b.x, b.y, 5, 5).intersects(new Rectangle(e1.x, e1.y, 20, 20))) {
+                double scale = 300 / e1.z;
+                int ex = (int)(640 + (e1.x - 640) * scale);
+                int ey = (int)(360 + (e1.y - 360) * scale);
+                int size = (int)(20 * scale);
+                double dist = Math.hypot(b.x - ex, b.y - ey);
+                if (dist < size / 2 + 3) {
                     enemiesToRemove.add(e1);
                     bulletsToRemove.add(b);
                     score += 10;
@@ -128,12 +135,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
 
     @Override
     public void keyPressed(KeyEvent e) {
-        int code = e.getKeyCode();
-        if (code == KeyEvent.VK_W) up = true;
-        if (code == KeyEvent.VK_S) down = true;
-        if (code == KeyEvent.VK_A) left = true;
-        if (code == KeyEvent.VK_D) right = true;
-        if (code == KeyEvent.VK_ESCAPE) {
+        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
             paused = !paused;
             if (!paused && firing) {
                 fireTimer.start();
@@ -145,13 +147,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
     }
 
     @Override
-    public void keyReleased(KeyEvent e) {
-        int code = e.getKeyCode();
-        if (code == KeyEvent.VK_W) up = false;
-        if (code == KeyEvent.VK_S) down = false;
-        if (code == KeyEvent.VK_A) left = false;
-        if (code == KeyEvent.VK_D) right = false;
-    }
+    public void keyReleased(KeyEvent e) {}
 
     @Override
     public void keyTyped(KeyEvent e) {}
@@ -210,10 +206,15 @@ class Bullet {
 }
 
 class Enemy {
-    int x, y;
+    double x, y, z;
 
-    public Enemy(int x, int y) {
+    public Enemy(double x, double y) {
         this.x = x;
         this.y = y;
+        this.z = 1000;
+    }
+
+    public void move() {
+        z -= 5;
     }
 }
