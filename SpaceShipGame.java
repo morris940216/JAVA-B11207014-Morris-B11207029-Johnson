@@ -5,23 +5,36 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class SpaceShipGame extends JPanel implements KeyListener, MouseListener, ActionListener {
-    private boolean up, down, left, right;
+public class SpaceShipGame extends JPanel implements KeyListener, MouseListener, MouseMotionListener, ActionListener {
+    private boolean up, down, left, right, firing, paused;
     private List<Bullet> bullets = new ArrayList<>();
     private List<Enemy> enemies = new ArrayList<>();
-    private Timer timer;
+    private Timer timer, fireTimer;
     private Random random = new Random();
+    private int mouseX, mouseY;
+    private int playerX, playerY;
+    private int score = 0;
 
     public SpaceShipGame() {
-        JFrame frame = new JFrame("戰艦駕駛 - 第一人稱 (背景移動版)");
-        frame.setSize(800, 600);
+        JFrame frame = new JFrame("戰艦駕駛 - 自由移動版");
+        frame.setSize(1280, 720); // 改為固定大小，不要全螢幕
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.add(this);
-        frame.addKeyListener(this);
+
+        this.addKeyListener(this);
         this.addMouseListener(this);
+        this.addMouseMotionListener(this);
+        this.setFocusable(true);
+
         timer = new Timer(16, this); // 約60FPS
+        fireTimer = new Timer(1, e -> fireBullet()); // 快速射擊
         timer.start();
         frame.setVisible(true);
+        this.requestFocusInWindow();
+        this.requestFocus();
+
+        playerX = frame.getWidth() / 2;
+        playerY = frame.getHeight() / 2;
     }
 
     @Override
@@ -29,44 +42,58 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         super.paintComponent(g);
         setBackground(Color.BLACK);
 
-        // 畫敵人
+        g.setColor(Color.DARK_GRAY);
+        g.fillRect(0, 0, getWidth(), 50);
+        g.fillRect(0, getHeight() - 50, getWidth(), 50);
+        g.fillRect(0, 0, 50, getHeight());
+        g.fillRect(getWidth() - 50, 0, 50, getHeight());
+
+        g.setColor(Color.CYAN);
+        g.fillOval(playerX - 10, playerY - 10, 20, 20);
+
         g.setColor(Color.RED);
         for (Enemy e : enemies) {
             g.fillRect(e.x, e.y, 20, 20);
         }
 
-        // 畫子彈
         g.setColor(Color.YELLOW);
         for (Bullet b : bullets) {
             g.fillOval(b.x, b.y, 5, 5);
         }
 
-        // 畫準星
         g.setColor(Color.GREEN);
-        int centerX = getWidth() / 2;
-        int centerY = getHeight() / 2;
-        g.drawLine(centerX - 10, centerY, centerX + 10, centerY);
-        g.drawLine(centerX, centerY - 10, centerX, centerY + 10);
+        g.drawLine(mouseX - 10, mouseY, mouseX + 10, mouseY);
+        g.drawLine(mouseX, mouseY - 10, mouseX, mouseY + 10);
+
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 24));
+        g.drawString("Score: " + score, 60, 40);
+
+        if (paused) {
+            g.setFont(new Font("Arial", Font.BOLD, 48));
+            g.drawString("PAUSED", getWidth() / 2 - 100, getHeight() / 2);
+        }
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        // 產生敵人
-        if (getWidth() > 30 && random.nextInt(100) < 2) {
-            enemies.add(new Enemy(random.nextInt(getWidth() - 30), -20));
+        if (paused) {
+            repaint();
+            return;
         }
 
-        // 背景（敵人）隨玩家移動方向反向移動
+        if (getWidth() > 30 && random.nextInt(100) < 2) {
+            enemies.add(new Enemy(random.nextInt(getWidth() - 100) + 50, -20));
+        }
+
         int speed = 5;
-        int moveX = 0, moveY = 0;
-        if (up) moveY = speed;
-        if (down) moveY = -speed;
-        if (left) moveX = speed;
-        if (right) moveX = -speed;
+        if (up && playerY > 50) playerY -= speed;
+        if (down && playerY < getHeight() - 50) playerY += speed;
+        if (left && playerX > 50) playerX -= speed;
+        if (right && playerX < getWidth() - 50) playerX += speed;
 
         for (Enemy e1 : enemies) {
-            e1.x += moveX;
-            e1.y += moveY + 2; // 敵人自然向下漂移
+            e1.y += 2;
         }
 
         for (Bullet b : bullets) {
@@ -76,7 +103,27 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         bullets.removeIf(b -> b.x < 0 || b.x > getWidth() || b.y < 0 || b.y > getHeight());
         enemies.removeIf(e1 -> e1.y > getHeight() + 20);
 
+        List<Enemy> enemiesToRemove = new ArrayList<>();
+        List<Bullet> bulletsToRemove = new ArrayList<>();
+
+        for (Bullet b : bullets) {
+            for (Enemy e1 : enemies) {
+                if (new Rectangle(b.x, b.y, 5, 5).intersects(new Rectangle(e1.x, e1.y, 20, 20))) {
+                    enemiesToRemove.add(e1);
+                    bulletsToRemove.add(b);
+                    score += 10;
+                }
+            }
+        }
+
+        enemies.removeAll(enemiesToRemove);
+        bullets.removeAll(bulletsToRemove);
+
         repaint();
+    }
+
+    private void fireBullet() {
+        bullets.add(new Bullet(playerX, playerY, mouseX, mouseY));
     }
 
     @Override
@@ -86,6 +133,15 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         if (code == KeyEvent.VK_S) down = true;
         if (code == KeyEvent.VK_A) left = true;
         if (code == KeyEvent.VK_D) right = true;
+        if (code == KeyEvent.VK_ESCAPE) {
+            paused = !paused;
+            if (!paused && firing) {
+                fireTimer.start();
+            } else {
+                fireTimer.stop();
+            }
+            repaint();
+        }
     }
 
     @Override
@@ -101,18 +157,32 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
     public void keyTyped(KeyEvent e) {}
 
     @Override
-    public void mouseClicked(MouseEvent e) {
-        int centerX = getWidth() / 2;
-        int centerY = getHeight() / 2;
-        bullets.add(new Bullet(centerX, centerY, e.getX(), e.getY()));
+    public void mouseMoved(MouseEvent e) {
+        mouseX = e.getX();
+        mouseY = e.getY();
     }
 
     @Override
-    public void mousePressed(MouseEvent e) {}
+    public void mouseDragged(MouseEvent e) {}
+
     @Override
-    public void mouseReleased(MouseEvent e) {}
+    public void mouseClicked(MouseEvent e) {}
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        firing = true;
+        if (!paused) fireTimer.start();
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        firing = false;
+        fireTimer.stop();
+    }
+
     @Override
     public void mouseEntered(MouseEvent e) {}
+
     @Override
     public void mouseExited(MouseEvent e) {}
 
