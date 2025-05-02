@@ -65,13 +65,14 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         }
 
       g.setColor(Color.RED);
-   for (Bullet b : enemyBullets) {
-    double scale = 300 / b.z;
-    int drawX = (int)(640 + (b.x - 640) * scale);
-    int drawY = (int)(360 + (b.y - 360) * scale);
-    int size = (int)(10 * scale);
-    g.fillOval(drawX - size / 2, drawY - size / 2, size, size);
-}
+      for (Bullet b : enemyBullets) {
+            double scale = 300 / b.z;
+            int drawX = (int)(640 + ((b.x - 640 + offsetX) * scale));
+            int drawY = (int)(360 + ((b.y - 360 + offsetY) * scale));
+            int size = (int)(10 * scale);
+            g.fillOval(drawX - size / 2, drawY - size / 2, size, size);
+        }
+
 
         g.setColor(Color.DARK_GRAY);
         g.fillRect(0, 0, getWidth(), 50);
@@ -97,12 +98,12 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
             g.fillOval(ex.x - ex.radius/2, ex.y - ex.radius/2, ex.radius, ex.radius);
         }
 
-        g.setColor(Color.YELLOW);
-        for (Bullet b : bullets) {
-              int x=(int)b.x;
-              int y=(int)b.y;
-            g.fillOval(x, y, 5, 5);
-        }
+         g.setColor(Color.YELLOW);
+         for (Bullet b : bullets) {
+             int x = (int)(b.x + offsetX);
+             int y = (int)(b.y + offsetY);
+             g.fillOval(x, y, 5, 5);
+}
 
         g.setColor(Color.GREEN);
         g.drawLine(mouseX - 10, mouseY, mouseX + 10, mouseY);
