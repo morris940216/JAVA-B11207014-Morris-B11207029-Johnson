@@ -64,6 +64,15 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
             }
         }
 
+      g.setColor(Color.RED);
+      for (Bullet b : enemyBullets) {
+          int centerX = 640;
+          int centerY = 360;
+          double dist = Math.hypot(b.x - centerX, b.y - centerY);
+          int size = (int)Math.max(4, 20 - dist / 20);
+          g.fillOval(b.x - size , b.y - size , size, size);
+      }
+
         g.setColor(Color.DARK_GRAY);
         g.fillRect(0, 0, getWidth(), 50);
         g.fillRect(0, getHeight() - 50, getWidth(), 50);
@@ -229,11 +238,15 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
             if (random.nextInt(100) < 2) {
                int startX = (int)(640 + (e.x - 640 + offsetX) * 300 / e.z);
                int startY = (int)(360 + (e.y - 360 + offsetY) * 300 / e.z);
-               int targetX = startX;
-               int targetY = startY;
+               int dx = startX - 640;
+               int dy = startY - 360;
+               double length = Math.hypot(dx, dy);
+               int targetX = startX + (int)(dx / length * 100);
+               int targetY = startY + (int)(dy / length * 100);
                enemyBullets.add(new Bullet(startX, startY, targetX, targetY));
             }
         }
+        
         bullets.forEach(Bullet::move);
         enemyBullets.forEach(Bullet::move);
         explosions.forEach(Explosion::update);
