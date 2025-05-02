@@ -19,7 +19,7 @@ public class SpaceGame extends JPanel implements ActionListener, KeyListener {
     public SpaceGame() {
         this.setFocusable(true);
         this.addKeyListener(this);
-        timer = new Timer(15, this);
+        timer = new Timer(1, this);
         timer.start();
     }
 
@@ -87,9 +87,9 @@ public class SpaceGame extends JPanel implements ActionListener, KeyListener {
             gameOver = true;
         }
 
-        if (enemy.y > getHeight()) {
+/*        if (enemy.y > getHeight()) {
             gameOver = true;
-        }
+        }*/
     }
 
     // ** 修正子彈打到敵人的邏輯 **

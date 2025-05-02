@@ -226,9 +226,10 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
             e.move();
             if (random.nextInt(100) < 2) {
                 enemyBullets.add(new Bullet(
-                    (int)(640 + (e.x - 640 + offsetX) * 300 / e.z),
-                    (int)(360 + (e.y - 360 + offsetY) * 300 / e.z),
-                    640, 360));
+                (int)(640 + (e.x - 640 + offsetX) * 300 / e.z),
+                (int)(360 + (e.y - 360 + offsetY) * 300 / e.z),
+                (int)(640 + (e.x - 640 + offsetX) * 300 / e.z),
+                getHeight()));
             }
         }
         bullets.forEach(Bullet::move);
