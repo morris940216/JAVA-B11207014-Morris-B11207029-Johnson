@@ -65,13 +65,13 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         }
 
       g.setColor(Color.RED);
-      for (Bullet b : enemyBullets) {
-          int centerX = 640;
-          int centerY = 360;
-          double dist = Math.hypot(b.x - centerX, b.y - centerY);
-          int size = (int)Math.max(4, 20 - dist / 20);
-          g.fillOval(b.x - size , b.y - size , size, size);
-      }
+   for (Bullet b : enemyBullets) {
+    double scale = 300 / b.z;
+    int drawX = (int)(640 + (b.x - 640) * scale);
+    int drawY = (int)(360 + (b.y - 360) * scale);
+    int size = (int)(10 * scale);
+    g.fillOval(drawX - size / 2, drawY - size / 2, size, size);
+}
 
         g.setColor(Color.DARK_GRAY);
         g.fillRect(0, 0, getWidth(), 50);
@@ -99,12 +99,9 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
 
         g.setColor(Color.YELLOW);
         for (Bullet b : bullets) {
-            g.fillOval(b.x, b.y, 5, 5);
-        }
-
-        g.setColor(Color.PINK);
-        for (Bullet b : enemyBullets) {
-            g.fillOval(b.x, b.y, 5, 5);
+              int x=(int)b.x;
+              int y=(int)b.y;
+            g.fillOval(x, y, 5, 5);
         }
 
         g.setColor(Color.GREEN);
@@ -195,16 +192,28 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
 
     // --- 下面是子類別和更新邏輯 ---
 
-    class Bullet { int x, y; double dx, dy;
-        public Bullet(int startX, int startY, int targetX, int targetY) {
-            x = startX; y = startY;
-            double angle = Math.atan2(targetY - startY, targetX - startX);
-            dx = 10 * Math.cos(angle);
-            dy = 10 * Math.sin(angle);
-        }
-        public void move() { x += dx; y += dy; }
+    class Bullet {
+    public double x, y, z;
+    double dx, dy, dz;
+    int lifetime = 0;
+    boolean isEnemy = false;
+
+    public Bullet(int startX, int startY, int targetX, int targetY) {
+        x = startX;
+        y = startY;
+        z = 1000; // 從遠處開始（像敵人）
+
+        double angle = Math.atan2(targetY - startY, targetX - startX);
+        dx = 0; // 位置固定在畫面中心
+        dy = 0;
+        dz = -20; // 每次 z 減少，表示接近玩家
     }
 
+    public void move() {
+        z += dz;
+        lifetime++;
+    }
+}
     class Enemy { double x, y, z;
         public Enemy(double x, double y) { this.x = x; this.y = y; this.z = 1000; }
         public void move() { z -= 5; }
@@ -264,7 +273,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
                 double scale = 300 / e.z;
                 int ex = (int)(640 + (e.x - 640 + offsetX) * scale);
                 int ey = (int)(360 + (e.y - 360 + offsetY) * scale);
-                int size = (int)(20 * scale);
+                int size = (int)Math.max(4, Math.min(20, 4 + b.lifetime / 2));
                 if (Math.hypot(b.x - ex, b.y - ey) < size / 2 + 3) {
                     enemiesToRemove.add(e);
                     bulletsToRemove.add(b);
@@ -275,11 +284,10 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         }
         enemies.removeAll(enemiesToRemove);
         bullets.removeAll(bulletsToRemove);
-
         for (Bullet b : enemyBullets) {
             if (Math.hypot(b.x - 640, b.y - 360) < 20) {
                 hp -= 10;
-                explosions.add(new Explosion(b.x, b.y));
+                explosions.add(new Explosion((int)b.x, (int)b.y));
                 b.x = -1000;
                 b.y = -1000;
                 if (hp <= 0) gameOver = true;
