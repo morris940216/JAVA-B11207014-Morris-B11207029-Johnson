@@ -128,7 +128,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
             return;
         }
 
-        if (up) {
+/*        if (space) {
             double angle = Math.atan2(mouseY - 360, mouseX - 640);
             velocityX += ACCELERATION * Math.cos(angle);
             velocityY += ACCELERATION * Math.sin(angle);
@@ -141,9 +141,11 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         if (down) {
             velocityX *= 0.95;
             velocityY *= 0.95;
-        }
-        if (left) offsetX -= 5;
-        if (right) offsetX += 5;
+        }*/
+        if (up) offsetY += 5;
+        if (down) offsetY -= 5;
+        if (left) offsetX += 5;
+        if (right) offsetX -= 5;
 
         offsetX += velocityX;
         offsetY += velocityY;
@@ -225,11 +227,11 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         for (Enemy e : enemies) {
             e.move();
             if (random.nextInt(100) < 2) {
-                enemyBullets.add(new Bullet(
-                (int)(640 + (e.x - 640 + offsetX) * 300 / e.z),
-                (int)(360 + (e.y - 360 + offsetY) * 300 / e.z),
-                (int)(640 + (e.x - 640 + offsetX) * 300 / e.z),
-                getHeight()));
+               int startX = (int)(640 + (e.x - 640 + offsetX) * 300 / e.z);
+               int startY = (int)(360 + (e.y - 360 + offsetY) * 300 / e.z);
+               int targetX = startX;
+               int targetY = startY;
+               enemyBullets.add(new Bullet(startX, startY, targetX, targetY));
             }
         }
         bullets.forEach(Bullet::move);
