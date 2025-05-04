@@ -13,9 +13,14 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
 
         boolean dangerIncoming = false;
         for (Bullet b : enemyBullets) {
-            if (b.z < 300 && Math.hypot(b.x - 640, b.y - 360) < 30) {
-                dangerIncoming = true;
-                break;
+            if (b.dz != 0) {
+                double timeToImpact = (b.z - 0) / -b.dz;
+                double futureX = b.x + b.dx * timeToImpact;
+                double futureY = b.y + b.dy * timeToImpact;
+                if (b.z > 0 && timeToImpact > 0 && Math.hypot(futureX - 640, futureY - 360) < 30) {
+                    dangerIncoming = true;
+                    break;
+                }
             }
         }
         setBackground(Color.BLACK);
@@ -75,6 +80,10 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
             g.fillOval(x, y, 5, 5);
         }
 
+        g.setColor(Color.GRAY);
+        g.fillRect(600, 610, 10, 30); // left turret
+        g.fillRect(670, 610, 10, 30); // right turret
+
         g.setColor(Color.GREEN);
         g.drawLine(mouseX - 10, mouseY, mouseX + 10, mouseY);
         g.drawLine(mouseX, mouseY - 10, mouseX, mouseY + 10);
@@ -133,9 +142,13 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
     }
 
     private void fireBullet() {
-        int leftGunX = 300 + offsetX;
-        int rightGunX = 980 + offsetX;
-        int gunY = getHeight() - 60 + offsetY;
+        // Draw gun positions relative to player at bottom center with spacing
+        int gunBaseY = 360 + 250; // slightly below center
+        int gunOffsetX = 40; // spacing from center
+
+        int leftGunX = 640 - gunOffsetX;
+        int rightGunX = 640 + gunOffsetX;
+        int gunY = gunBaseY;
 
         bullets.add(new Bullet(leftGunX, gunY, mouseX, mouseY, false));
         bullets.add(new Bullet(rightGunX, gunY, mouseX, mouseY, false));
