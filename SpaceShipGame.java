@@ -94,7 +94,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         g.drawString("HP: " + hp, 60, 70);
 
         g.setFont(new Font("Arial", Font.PLAIN, 18));
-        g.drawString("[W] Thrust [S] Brake [A] Left [D] Right [Mouse] Aim [Click] Fire [ESC] Pause", 200, getHeight() - 20);
+        g.drawString("[W] Climb [S] Decent [A] Left [D] Right [Mouse] Aim [Click] Fire [ESC] Pause", 200, getHeight() - 20);
 
         if (paused) {
             g.setFont(new Font("Arial", Font.BOLD, 48));
