@@ -4,6 +4,9 @@ import java.awt.event.*;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.Clip;
 
 
 public class SpaceShipGame extends JPanel implements KeyListener, MouseListener, MouseMotionListener, ActionListener {
@@ -20,6 +23,8 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
     private int offsetX, offsetY;
     private int score = 0;
     private int hp = 100;
+    private Clip bgmClip;
+    
 
     private double velocityX = 0, velocityY = 0;
     private final double ACCELERATION = 0.3;
@@ -30,6 +35,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         frame.setSize(1280, 720);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.add(this);
+        startBackgroundMusic("/bgm.wav");
 
         this.addKeyListener(this);
         this.addMouseListener(this);
@@ -47,6 +53,17 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
             stars.add(new Star(random.nextInt(1180) + 50, random.nextInt(620) + 50, random.nextInt(800) + 200));
         }
     }
+    
+    private void startBackgroundMusic(String soundFile) {
+    try {
+        AudioInputStream audioIn = AudioSystem.getAudioInputStream(getClass().getResource(soundFile));
+        bgmClip = AudioSystem.getClip();
+        bgmClip.open(audioIn);
+        bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
 
     @Override
     public void paintComponent(Graphics g) {
@@ -127,6 +144,17 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
             g.drawString("GAME OVER", getWidth() / 2 - 150, getHeight() / 2);
         }
     }
+    
+    private void playSound(String soundFile) {
+    try {
+        AudioInputStream audioIn = AudioSystem.getAudioInputStream(getClass().getResource(soundFile));
+        Clip clip = AudioSystem.getClip();
+        clip.open(audioIn);
+        clip.start();
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
 
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -163,6 +191,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
 
     private void fireBullet() {
         bullets.add(new Bullet(640, 360, mouseX, mouseY));
+        playSound("/shoot.wav");
     }
 
     @Override
@@ -279,6 +308,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
                     enemiesToRemove.add(e);
                     bulletsToRemove.add(b);
                     explosions.add(new Explosion(ex, ey));
+                    playSound("/explosion.wav");
                     score += 10;
                 }
             }
@@ -288,6 +318,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         for (Bullet b : enemyBullets) {
             if (Math.hypot(b.x - 640, b.y - 360) < 20) {
                 hp -= 10;
+                playSound("/hit.wav");
                 explosions.add(new Explosion((int)b.x, (int)b.y));
                 b.x = -1000;
                 b.y = -1000;

@@ -5,14 +5,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class SpaceShipGame extends JPanel implements KeyListener, MouseListener, ActionListener {
+public class SpaceShipGame1 extends JPanel implements KeyListener, MouseListener, ActionListener {
     private boolean up, down, left, right;
     private List<Bullet> bullets = new ArrayList<>();
     private List<Enemy> enemies = new ArrayList<>();
     private Timer timer;
     private Random random = new Random();
+    private Clip bgmClip;
 
-    public SpaceShipGame() {
+    public SpaceShipGame1() {
         JFrame frame = new JFrame("戰艦駕駛 - 第一人稱 (背景移動版)");
         frame.setSize(800, 600);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
