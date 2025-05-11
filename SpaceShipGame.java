@@ -9,7 +9,7 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.Clip;
 
 
-public class SpaceShipGame extends JPanel implements KeyListener, MouseListener, MouseMotionListener, ActionListener {
+public class SpaceShipGame extends JPanel implements KeyListener, ActionListener {
     private boolean firing, paused, gameOver;
     private boolean up, down, left, right;
     private List<Bullet> bullets = new ArrayList<>();
@@ -19,7 +19,6 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
     private List<Star> stars = new ArrayList<>();
     private Timer timer, fireTimer;
     private Random random = new Random();
-    private int mouseX, mouseY;
     private int offsetX, offsetY;
     private int score = 0;
     private int hp = 100;
@@ -38,8 +37,6 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         startBackgroundMusic("/bgm.wav");
 
         this.addKeyListener(this);
-        this.addMouseListener(this);
-        this.addMouseMotionListener(this);
         this.setFocusable(true);
 
         timer = new Timer(16, this);
@@ -124,8 +121,6 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
             g.fillOval(drawX - size / 2, drawY - size / 2, size, size);}
 
         g.setColor(Color.GREEN);
-        g.drawLine(mouseX - 10, mouseY, mouseX + 10, mouseY);
-        g.drawLine(mouseX, mouseY - 10, mouseX, mouseY + 10);
 
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 24));
@@ -191,7 +186,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
     }
 
     private void fireBullet() {
-        bullets.add(new Bullet(640, 360, mouseX, mouseY));
+        bullets.add(new Bullet(640, 360,640, 360));
         playSound("/shoot.wav");
     }
 
@@ -202,6 +197,10 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         if (e.getKeyCode() == KeyEvent.VK_S) down = true;
         if (e.getKeyCode() == KeyEvent.VK_A) left = true;
         if (e.getKeyCode() == KeyEvent.VK_D) right = true;
+        if (e.getKeyCode() == KeyEvent.VK_SPACE && !paused) {
+            firing = true;
+            fireTimer.start();
+        }
     }
     @Override
     public void keyReleased(KeyEvent e) {
@@ -209,15 +208,12 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         if (e.getKeyCode() == KeyEvent.VK_S) down = false;
         if (e.getKeyCode() == KeyEvent.VK_A) left = false;
         if (e.getKeyCode() == KeyEvent.VK_D) right = false;
+        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+            firing = false;
+            fireTimer.stop();
+        }
     }
     @Override public void keyTyped(KeyEvent e) {}
-    @Override public void mouseMoved(MouseEvent e) { mouseX = e.getX(); mouseY = e.getY(); }
-    @Override public void mouseDragged(MouseEvent e) {}
-    @Override public void mouseClicked(MouseEvent e) {}
-    @Override public void mousePressed(MouseEvent e) { firing = true; if (!paused) fireTimer.start(); }
-    @Override public void mouseReleased(MouseEvent e) { firing = false; fireTimer.stop(); }
-    @Override public void mouseEntered(MouseEvent e) {}
-    @Override public void mouseExited(MouseEvent e) {}
 
     public static void main(String[] args) { new SpaceShipGame(); }
 
@@ -229,20 +225,35 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
     int lifetime = 0;
     boolean isEnemy = false;
 
+    // 玩家子彈建構子
+    public Bullet(int startX, int startY) {
+        x = startX;
+        y = startY;
+        z = 300;
+        dx = 0;
+        dy = 0;
+        dz = -10;
+        isEnemy = false;
+    }
+
+    // 敵人子彈建構子
     public Bullet(int startX, int startY, int targetX, int targetY) {
         x = startX;
         y = startY;
-        z = 1000; // 從遠處開始（像敵人）
-
+        z = 300;
         double angle = Math.atan2(targetY - startY, targetX - startX);
-        dx = 0; // 位置固定在畫面中心
-        dy = 0;
-        dz = -20; // 每次 z 減少，表示接近玩家
+        dx = Math.cos(angle) * 10;
+        dy = Math.sin(angle) * 10;
+        dz = 0;
+        isEnemy = true;
     }
 
-    public void move() {
-        z += dz;
-        lifetime++;
+        public void move() {
+    x += dx;
+    y += dy;
+    z += dz;
+    lifetime++;
+}
     }
 }
     class Enemy { double x, y, z;
