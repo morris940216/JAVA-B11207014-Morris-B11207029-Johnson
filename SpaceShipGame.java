@@ -93,6 +93,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         g.fillRect(0, getHeight() - 50, getWidth(), 50);
         g.fillRect(0, 0, 50, getHeight());
         g.fillRect(getWidth() - 50, 0, 50, getHeight());
+        
 
         g.setColor(Color.RED);
         for (Enemy e : enemies) {
@@ -106,22 +107,21 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
                 g.fillPolygon(xPoints, yPoints, 3);
             }
         }
+        
+        
+        g.setColor(Color.YELLOW);
+        for (Bullet b : bullets) {
+            double scale = 300 / b.z;
+            int drawX = (int)(b.x + offsetX);
+            int drawY = (int)(b.y + offsetY);
+            int size = (int)(20 * scale);
+            g.fillOval(drawX - size / 2, drawY - size / 2, size, size);
+        }
 
         g.setColor(Color.ORANGE);
         for (Explosion ex : explosions) {
             g.fillOval(ex.x - ex.radius/2, ex.y - ex.radius/2, ex.radius, ex.radius);
         }
-
-        g.setColor(Color.YELLOW);
-        for (Bullet b : bullets) {
-            double scale = 100 / b.z;
-            int drawX = (int)(b.x + offsetX);
-            int drawY = (int)(b.y + offsetY);
-            int size = (int)(20 / scale);
-            g.fillOval(drawX - size / 2, drawY - size / 2, size, size);
-        }
-
-        g.setColor(Color.GREEN);
 
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 24));
@@ -129,7 +129,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         g.drawString("HP: " + hp, 60, 70);
 
         g.setFont(new Font("Arial", Font.PLAIN, 18));
-        g.drawString("[W] Up [S] Down [A] Left [D] Right [Mouse] Aim [Click] Fire [ESC] Pause", 200, getHeight() - 20);
+        g.drawString("[W] Up [S] Down [A] Left [D] Right [Space] Fire [ESC] Pause", 200, getHeight() - 20);
 
         if (paused) {
             g.setFont(new Font("Arial", Font.BOLD, 48));
@@ -216,10 +216,10 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     public Bullet(int startX, int startY) {
     x = startX;
     y = startY;
-    z = 300;
+    z = 100;
     dx = 0;
     dy = 0;
-    dz = -10;
+    dz = 20;
     isEnemy = false;
 }
 
@@ -299,24 +299,27 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
 
         for (Bullet b : bullets) {
             for (Enemy e : enemies) {
-                double scale = 300 / e.z;
-                int ex = (int)(640 + (e.x - 640 + offsetX) * scale);
-                int ey = (int)(360 + (e.y - 360 + offsetY) * scale);
-                int size = (int)Math.max(4, Math.min(20, 4 + b.lifetime / 2));
-                if (Math.hypot(b.x - ex, b.y - ey) < size / 2 + 3) {
-                    enemiesToRemove.add(e);
-                    bulletsToRemove.add(b);
-                    explosions.add(new Explosion(ex, ey));
-                    playSound("/explosion.wav");
-                    score += 10;
-                }
+                  int ex = (int)e.x;
+                  int ey = (int)e.y;
+                  int ez = (int)e.z;
+                  if(ez==b.z){
+                     if (Math.hypot(b.x - ex, b.y - ey) < 30) {
+                       enemiesToRemove.add(e);
+                       bulletsToRemove.add(b);
+                       explosions.add(new Explosion(ex, ey));
+                       playSound("/explosion.wav");
+                       score += 10;
+                     }
+                  }
             }
         }
         enemies.removeAll(enemiesToRemove);
         bullets.removeAll(bulletsToRemove);
         for (Bullet b : enemyBullets) {
-        if(b.z <=300){
-            if (Math.hypot(b.x - 640+offsetX, b.y - 360+offsetY) < 10) {
+        if(b.z <=400){
+            int shipX = 640 - offsetX;
+            int shipY = 360 - offsetY;
+            if (Math.hypot(b.x - shipX, b.y - shipY) < 10) {
                 hp -= 10;
                 playSound("/hit.wav");
                 explosions.add(new Explosion((int)b.x, (int)b.y));
