@@ -35,6 +35,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.add(this);
         startBackgroundMusic("/bgm.wav");
+        
 
         this.addKeyListener(this);
         this.setFocusable(true);
@@ -53,7 +54,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     
     private void startBackgroundMusic(String soundFile) {
     try {
-        AudioInputStream audioIn = AudioSystem.getAudioInputStream(getClass().getResource(soundFile));
+        AudioInputStream audioIn = AudioSystem.getAudioInputStream(getClass().getResource("/bgm.wav"));
         bgmClip = AudioSystem.getClip();
         bgmClip.open(audioIn);
         bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
@@ -61,12 +62,18 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         e.printStackTrace();
     }
 }
+      private Image cockpitImage;
+
+{
+    // 載入圖片，在建構子或初始化區塊中
+    cockpitImage = new ImageIcon(getClass().getResource("/cockpit.png")).getImage();
+}
 
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         setBackground(Color.BLACK);
-
+                 
         g.setColor(Color.WHITE);
         for (Star s : stars) {
             double scale = 300.0 / s.z;
@@ -88,11 +95,6 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         }
 
 
-        g.setColor(Color.DARK_GRAY);
-        g.fillRect(0, 0, getWidth(), 50);
-        g.fillRect(0, getHeight() - 50, getWidth(), 50);
-        g.fillRect(0, 0, 50, getHeight());
-        g.fillRect(getWidth() - 50, 0, 50, getHeight());
         
 
         g.setColor(Color.RED);
@@ -122,6 +124,14 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         for (Explosion ex : explosions) {
             g.fillOval(ex.x - ex.radius/2, ex.y - ex.radius/2, ex.radius, ex.radius);
         }
+        
+        g.drawImage(cockpitImage, 0, 450, getWidth(), getHeight()/2, null);
+        
+        g.setColor(Color.DARK_GRAY);
+        g.fillRect(0, 0, getWidth(), 50);
+        g.fillRect(0, getHeight() - 50, getWidth(), 50);
+        g.fillRect(0, 0, 50, getHeight());
+        g.fillRect(getWidth() - 50, 0, 50, getHeight());
 
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 24));
