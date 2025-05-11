@@ -117,10 +117,11 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
 
          g.setColor(Color.YELLOW);
          for (Bullet b : bullets) {
-             int x = (int)(b.x + offsetX);
-             int y = (int)(b.y + offsetY);
-             g.fillOval(x, y, 5, 5);
-}
+            double scale = 300 / b.z;
+            int drawX = (int)(640 + ((b.x - 640 + offsetX) * scale));
+            int drawY = (int)(360 + ((b.y - 360 + offsetY) * scale));
+            int size = (int)(10 / scale);
+            g.fillOval(drawX - size / 2, drawY - size / 2, size, size);}
 
         g.setColor(Color.GREEN);
         g.drawLine(mouseX - 10, mouseY, mouseX + 10, mouseY);
@@ -132,7 +133,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, MouseListener,
         g.drawString("HP: " + hp, 60, 70);
 
         g.setFont(new Font("Arial", Font.PLAIN, 18));
-        g.drawString("[W] Thrust [S] Brake [A] Left [D] Right [Mouse] Aim [Click] Fire [ESC] Pause", 200, getHeight() - 20);
+        g.drawString("[W] Up [S] Down [A] Left [D] Right [Mouse] Aim [Click] Fire [ESC] Pause", 200, getHeight() - 20);
 
         if (paused) {
             g.setFont(new Font("Arial", Font.BOLD, 48));
