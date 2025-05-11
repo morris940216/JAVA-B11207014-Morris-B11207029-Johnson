@@ -229,9 +229,8 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         x = startX;
         y = startY;
         z = 1000;
-        double angle = Math.atan2(targetY - startY, targetX - startX);
-        dx = Math.cos(angle) * 10;
-        dy = Math.sin(angle) * 10;
+       dx = 0;
+       dy = 0;
         dz = -20;
         isEnemy = true;
     }
@@ -245,7 +244,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
 }
     class Enemy { double x, y, z;
         public Enemy(double x, double y) { this.x = x; this.y = y; this.z = 1000; }
-        public void move() { z -= 5; }
+        public void move() { z -= 10; }
     }
 
     class Star { int x, y, z;
@@ -316,10 +315,10 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         enemies.removeAll(enemiesToRemove);
         bullets.removeAll(bulletsToRemove);
         for (Bullet b : enemyBullets) {
-        if(b.z <=400){
-            int shipX = 640 - offsetX;
-            int shipY = 360 - offsetY;
-            if (Math.hypot(b.x - shipX, b.y - shipY) < 10) {
+        if(b.z ==20){
+            int shipX = 640 -offsetX;
+            int shipY = 360 -offsetY;
+            if (Math.hypot(b.x - shipX, b.y - shipY) < 20) {
                 hp -= 10;
                 playSound("/hit.wav");
                 explosions.add(new Explosion((int)b.x, (int)b.y));
