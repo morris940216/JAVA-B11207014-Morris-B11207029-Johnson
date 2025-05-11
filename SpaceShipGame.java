@@ -112,13 +112,14 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
             g.fillOval(ex.x - ex.radius/2, ex.y - ex.radius/2, ex.radius, ex.radius);
         }
 
-         g.setColor(Color.YELLOW);
-         for (Bullet b : bullets) {
-            double scale = 300 / b.z;
-            int drawX = (int)(640 + ((b.x - 640 + offsetX) * scale));
-            int drawY = (int)(360 + ((b.y - 360 + offsetY) * scale));
-            int size = (int)(10 / scale);
-            g.fillOval(drawX - size / 2, drawY - size / 2, size, size);}
+        g.setColor(Color.YELLOW);
+        for (Bullet b : bullets) {
+            double scale = 100 / b.z;
+            int drawX = (int)(b.x + offsetX);
+            int drawY = (int)(b.y + offsetY);
+            int size = (int)(20 / scale);
+            g.fillOval(drawX - size / 2, drawY - size / 2, size, size);
+        }
 
         g.setColor(Color.GREEN);
 
@@ -159,20 +160,6 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
             return;
         }
 
-/*        if (space) {
-            double angle = Math.atan2(mouseY - 360, mouseX - 640);
-            velocityX += ACCELERATION * Math.cos(angle);
-            velocityY += ACCELERATION * Math.sin(angle);
-            double speed = Math.hypot(velocityX, velocityY);
-            if (speed > MAX_SPEED) {
-                velocityX = (velocityX / speed) * MAX_SPEED;
-                velocityY = (velocityY / speed) * MAX_SPEED;
-            }
-        }
-        if (down) {
-            velocityX *= 0.95;
-            velocityY *= 0.95;
-        }*/
         if (up) offsetY += 5;
         if (down) offsetY -= 5;
         if (left) offsetX += 5;
@@ -186,7 +173,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     }
 
     private void fireBullet() {
-        bullets.add(new Bullet(640, 360,640, 360));
+        bullets.add(new Bullet(640-offsetX,360-offsetY));
         playSound("/shoot.wav");
     }
 
@@ -227,34 +214,34 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
 
     // 玩家子彈建構子
     public Bullet(int startX, int startY) {
-        x = startX;
-        y = startY;
-        z = 300;
-        dx = 0;
-        dy = 0;
-        dz = -10;
-        isEnemy = false;
-    }
+    x = startX;
+    y = startY;
+    z = 300;
+    dx = 0;
+    dy = 0;
+    dz = -10;
+    isEnemy = false;
+}
+
 
     // 敵人子彈建構子
     public Bullet(int startX, int startY, int targetX, int targetY) {
         x = startX;
         y = startY;
-        z = 300;
+        z = 1000;
         double angle = Math.atan2(targetY - startY, targetX - startX);
         dx = Math.cos(angle) * 10;
         dy = Math.sin(angle) * 10;
-        dz = 0;
+        dz = -20;
         isEnemy = true;
     }
 
         public void move() {
-    x += dx;
-    y += dy;
     z += dz;
     lifetime++;
+    
 }
-    }
+
 }
     class Enemy { double x, y, z;
         public Enemy(double x, double y) { this.x = x; this.y = y; this.z = 1000; }
@@ -302,7 +289,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         enemyBullets.forEach(Bullet::move);
         explosions.forEach(Explosion::update);
 
-        bullets.removeIf(b -> b.x < 0 || b.x > getWidth() || b.y < 0 || b.y > getHeight());
+        bullets.removeIf(b -> b.x < 0 || b.x > getWidth() || b.y < 0 || b.y > getHeight() || b.z > 1000);
         enemyBullets.removeIf(b -> b.x < 0 || b.x > getWidth() || b.y < 0 || b.y > getHeight());
         enemies.removeIf(e -> e.z <= 50);
         explosions.removeIf(ex -> ex.radius > 50);
@@ -328,7 +315,8 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         enemies.removeAll(enemiesToRemove);
         bullets.removeAll(bulletsToRemove);
         for (Bullet b : enemyBullets) {
-            if (Math.hypot(b.x - 640, b.y - 360) < 20) {
+        if(b.z <=300){
+            if (Math.hypot(b.x - 640+offsetX, b.y - 360+offsetY) < 10) {
                 hp -= 10;
                 playSound("/hit.wav");
                 explosions.add(new Explosion((int)b.x, (int)b.y));
@@ -336,6 +324,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
                 b.y = -1000;
                 if (hp <= 0) gameOver = true;
             }
+        }
         }
     }
 }
