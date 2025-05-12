@@ -7,6 +7,8 @@ import java.util.Random;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.Clip;
+import java.util.Objects;   
+
 
 
 public class SpaceShipGame extends JPanel implements KeyListener, ActionListener {
@@ -24,11 +26,19 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     private int hp = 100;
     private Clip bgmClip;
     
+   private double overheat = 0;              
+   private final double HEAT_PER_SHOT = 2;   
+   private final double COOL_RATE = 0.4;    
+   private boolean overheated = false; 
+   private int cockpitShakeX = 0, cockpitShakeY = 0;       
+   private boolean cockpitVisible = true;
+
+    
 
     private double velocityX = 0, velocityY = 0;
     private final double ACCELERATION = 0.3;
     private final double MAX_SPEED = 10;
-
+   
     public SpaceShipGame() {
         JFrame frame = new JFrame("SpaceShip 3D FPS");
         frame.setSize(1280, 720);
@@ -52,6 +62,63 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         }
     }
     
+   private void playSound(String path) {
+      try (AudioInputStream in = AudioSystem.getAudioInputStream(
+            Objects.requireNonNull(getClass().getResource(path)))) {
+
+        Clip clip = AudioSystem.getClip();
+        clip.open(in);
+        clip.start();
+
+    } catch (Exception ex) {    
+        ex.printStackTrace();
+    }
+}  
+   @Override
+public void actionPerformed(ActionEvent e) {
+    if (paused || gameOver) {
+        repaint();
+        return;
+    }
+    if (up)    offsetY += 5;
+    if (down)  offsetY -= 5;
+    if (left)  offsetX += 5;
+    if (right) offsetX -= 5;
+
+
+    offsetX += velocityX;
+    offsetY += velocityY;
+
+   
+    overheat = Math.max(0, overheat - COOL_RATE);
+    if (overheated && overheat < 60) {
+        overheated = false;
+        if (firing) fireTimer.start();
+    }
+
+ 
+    cockpitShakeX = (int) (-velocityX * 0.8);
+    cockpitShakeY = (int) (-velocityY * 0.4);
+
+  
+    updateGameObjects();
+    repaint();
+}
+
+
+    private void fireBullet() {
+      if (overheated) return;                
+         bullets.add(new Bullet(640 - offsetX, 360 - offsetY));
+         playSound("/shoot.wav");
+         overheat += HEAT_PER_SHOT;             
+      if (overheat >= 100) {                 
+        overheat = 100;
+        overheated = true;
+        fireTimer.stop();
+    }
+}
+   
+
     private void startBackgroundMusic(String soundFile) {
     try {
         AudioInputStream audioIn = AudioSystem.getAudioInputStream(getClass().getResource("/bgm.wav"));
@@ -65,127 +132,166 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
       private Image cockpitImage;
 
 {
-    // 載入圖片，在建構子或初始化區塊中
+   
     cockpitImage = new ImageIcon(getClass().getResource("/cockpit.png")).getImage();
 }
 
-    @Override
-    public void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        setBackground(Color.BLACK);
-                 
-        g.setColor(Color.WHITE);
-        for (Star s : stars) {
-            double scale = 300.0 / s.z;
-            int x = (int)(640 + (s.x - 640 + offsetX) * scale);
-            int y = (int)(360 + (s.y - 360 + offsetY) * scale);
-            if (x >= 50 && x <= getWidth() - 50 && y >= 50 && y <= getHeight() - 50) {
-                int size = (int)(2 * scale);
-                g.fillOval(x, y, size > 0 ? size : 1, size > 0 ? size : 1);
-            }
-        }
+@Override
+public void paintComponent(Graphics g) {
+    super.paintComponent(g);
+    setBackground(Color.BLACK);
 
-      g.setColor(Color.RED);
-      for (Bullet b : enemyBullets) {
-            double scale = 300 / b.z;
-            int drawX = (int)(640 + ((b.x - 640 + offsetX) * scale));
-            int drawY = (int)(360 + ((b.y - 360 + offsetY) * scale));
-            int size = (int)(10 * scale);
-            g.fillOval(drawX - size / 2, drawY - size / 2, size, size);
-        }
+   
+    int imgW = cockpitImage.getWidth(null);
+int imgH = cockpitImage.getHeight(null);
 
+double imgscale = (double) getWidth() / imgW;      
+int destH   = getHeight() / 2;                  
+int srcH    = (int) (destH / imgscale);            
+int sy1     = imgH - srcH;                      
+int sy2     = imgH;                             
+int cockpitY = getHeight() - destH;                   
 
-        
-
-        g.setColor(Color.RED);
-        for (Enemy e : enemies) {
-            double scale = 300 / e.z;
-            int cx = (int)(640 + (e.x - 640 + offsetX) * scale);
-            int cy = (int)(360 + (e.y - 360 + offsetY) * scale);
-            int size = (int)(20 * scale);
-            if (size > 0 && cx >= 50 && cx <= getWidth() - 50 && cy >= 50 && cy <= getHeight() - 50) {
-                int[] xPoints = {cx, cx - size/2, cx + size/2};
-                int[] yPoints = {cy - size/2, cy + size/2, cy + size/2};
-                g.fillPolygon(xPoints, yPoints, 3);
-            }
-        }
-        
-        
-        g.setColor(Color.YELLOW);
-        for (Bullet b : bullets) {
-            double scale = 300 / b.z;
-            int drawX = (int)(b.x + offsetX);
-            int drawY = (int)(b.y + offsetY);
-            int size = (int)(20 * scale);
-            g.fillOval(drawX - size / 2, drawY - size / 2, size, size);
-        }
-
-        g.setColor(Color.ORANGE);
-        for (Explosion ex : explosions) {
-            g.fillOval(ex.x - ex.radius/2, ex.y - ex.radius/2, ex.radius, ex.radius);
-        }
-        
-        g.drawImage(cockpitImage, 0, 450, getWidth(), getHeight()/2, null);
-        
-        g.setColor(Color.DARK_GRAY);
-        g.fillRect(0, 0, getWidth(), 50);
-        g.fillRect(0, getHeight() - 50, getWidth(), 50);
-        g.fillRect(0, 0, 50, getHeight());
-        g.fillRect(getWidth() - 50, 0, 50, getHeight());
-
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 24));
-        g.drawString("Score: " + score, 60, 40);
-        g.drawString("HP: " + hp, 60, 70);
-
-        g.setFont(new Font("Arial", Font.PLAIN, 18));
-        g.drawString("[W] Up [S] Down [A] Left [D] Right [Space] Fire [ESC] Pause", 200, getHeight() - 20);
-
-        if (paused) {
-            g.setFont(new Font("Arial", Font.BOLD, 48));
-            g.drawString("PAUSED", getWidth() / 2 - 100, getHeight() / 2);
-        }
-
-        if (gameOver) {
-            g.setFont(new Font("Arial", Font.BOLD, 48));
-            g.drawString("GAME OVER", getWidth() / 2 - 150, getHeight() / 2);
+   
+    g.setColor(Color.WHITE);
+    for (Star s : stars) {
+        double scale = 300.0 / s.z;
+        int x = (int) (640 + (s.x - 640 + offsetX) * scale);
+        int y = (int) (360 + (s.y - 360 + offsetY) * scale);
+        if (x >= 50 && x <= getWidth() - 50 && y >= 50 && y <= getHeight() - 50) {
+            int size = (int) (2 * scale);
+            g.fillOval(x, y, size > 0 ? size : 1, size > 0 ? size : 1);
         }
     }
+
+  
+    g.setColor(Color.RED);
+    for (Bullet b : enemyBullets) {
+        double scale = 300.0 / b.z;
+        int size = Math.min((int)(10 * scale), 26);   
+        g.fillOval((int)b.x - size/2, (int)b.y - size/2, size, size);
+    }
+
+   
+    for (Enemy e : enemies) {
+        double scale = 300.0 / e.z;
+        int cx = (int)(640 + (e.x - 640 + offsetX) * scale);
+        int cy = (int)(360 + (e.y - 360 + offsetY) * scale);
+        int size = (int)(20 * scale);
+        if (size > 0 && cx >= 50 && cx <= getWidth()-50 && cy >= 50 && cy <= getHeight()-50) {
+            int[] xs = {cx, cx - size/2, cx + size/2};
+            int[] ys = {cy - size/2, cy + size/2, cy + size/2};
+            g.fillPolygon(xs, ys, 3);
+        }
+    }
+
+   
+    g.setColor(Color.YELLOW);
+    for (Bullet b : bullets) {
+        double scale = 300.0 / b.z;
+        int size = Math.min((int)(20 * scale), 22);  
+        g.fillOval((int)b.x + offsetX - size/2,
+                   (int)b.y + offsetY - size/2, size, size);
+    }
+
     
-    private void playSound(String soundFile) {
-    try {
-        AudioInputStream audioIn = AudioSystem.getAudioInputStream(getClass().getResource(soundFile));
-        Clip clip = AudioSystem.getClip();
-        clip.open(audioIn);
-        clip.start();
-    } catch (Exception e) {
-        e.printStackTrace();
+    g.setColor(Color.ORANGE);
+    for (Explosion ex : explosions) {
+        g.fillOval(ex.x - ex.radius/2, ex.y - ex.radius/2, ex.radius, ex.radius);
+    }
+
+   
+    if (cockpitVisible) {
+    g.drawImage(
+        cockpitImage,
+        cockpitShakeX,
+        cockpitY   + cockpitShakeY,             
+                getWidth() + cockpitShakeX,
+        cockpitY   + destH + cockpitShakeY,     
+        0, sy1, imgW, sy2,                      
+        null
+    );}
+
+    
+    int barW = 300, barH = 20;
+    int barX = 80 + cockpitShakeX;
+    int barY = cockpitY + 60 + cockpitShakeY;     
+    int heatY = barY + 30;
+
+    int radarR = 80;
+    int radarX = getWidth() - radarR - 70 + cockpitShakeX;
+    int radarY = cockpitY + 60 + cockpitShakeY;
+
+
+    g.setColor(Color.GRAY);
+    g.fillRect(barX, barY, barW, barH);
+    g.setColor(Color.GREEN);
+    g.fillRect(barX, barY, (int)(barW * hp / 100.0), barH);
+    g.setColor(Color.WHITE);
+    g.drawRect(barX, barY, barW, barH);
+    g.drawString("HP", barX - 40, barY + 16);
+
+    
+    g.setColor(Color.GRAY);
+    g.fillRect(barX, heatY, barW, barH);
+    float heatRatio = (float) overheat / 100f;
+    g.setColor(heatRatio < 0.6 ? Color.CYAN :
+               heatRatio < 0.9 ? Color.ORANGE : Color.RED);
+    g.fillRect(barX, heatY, (int)(barW * heatRatio), barH);
+    g.setColor(Color.WHITE);
+    g.drawRect(barX, heatY, barW, barH);
+    g.drawString("HEAT", barX - 55, heatY + 16);
+    if (overheated) {
+        g.setColor(Color.RED);
+        g.drawString("OVERHEATED!", barX + barW + 15, heatY + 16);
+    }
+    g.setColor(new Color(0, 32, 0, 180));
+    g.fillOval(radarX, radarY, radarR * 2, radarR * 2);
+    g.setColor(Color.GREEN);
+    g.drawOval(radarX, radarY, radarR * 2, radarR * 2);
+    g.drawLine(radarX + radarR, radarY, radarX + radarR, radarY + radarR * 2);
+    g.drawLine(radarX, radarY + radarR, radarX + radarR * 2, radarY + radarR);
+
+    for (Enemy en : enemies) {
+        double sx = 640 + (en.x - 640 + offsetX) * 300 / en.z;
+        double sy = 360 + (en.y - 360 + offsetY) * 300 / en.z;
+        double dx = (sx - 640) * 0.15;
+        double dy = (sy - 360) * 0.15;
+        if (Math.hypot(dx, dy) < radarR) {
+            int dotX = (int)(radarX + radarR + dx);
+            int dotY = (int)(radarY + radarR + dy);
+            g.fillOval(dotX - 3, dotY - 3, 6, 6);
+        }
+    }
+
+  
+    g.setColor(Color.DARK_GRAY);
+    g.fillRect(0, 0, getWidth(), 50);
+    g.fillRect(0, getHeight()-50, getWidth(), 50);
+    g.fillRect(0, 0, 50, getHeight());
+    g.fillRect(getWidth()-50, 0, 50, getHeight());
+
+    g.setColor(Color.WHITE);
+    g.setFont(new Font("Arial", Font.BOLD, 24));
+    g.drawString("Score: " + score, 60, 40);
+    g.drawString("HP: " + hp, 60, 70);
+
+    g.setFont(new Font("Arial", Font.PLAIN, 18));
+    g.drawString("[W] Up [S] Down [A] Left [D] Right [Space] Fire [ESC] Pause [C] Cockpit",
+                 120, getHeight() - 20);
+
+    if (paused) {
+        g.setFont(new Font("Arial", Font.BOLD, 48));
+        g.drawString("PAUSED", getWidth()/2 - 100, getHeight()/2);
+    }
+    if (gameOver) {
+        g.setFont(new Font("Arial", Font.BOLD, 48));
+        g.drawString("GAME OVER", getWidth()/2 - 150, getHeight()/2);
     }
 }
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        if (paused || gameOver) {
-            repaint();
-            return;
-        }
 
-        if (up) offsetY += 5;
-        if (down) offsetY -= 5;
-        if (left) offsetX += 5;
-        if (right) offsetX -= 5;
-
-        offsetX += velocityX;
-        offsetY += velocityY;
-
-        updateGameObjects();
-        repaint();
-    }
-
-    private void fireBullet() {
-        bullets.add(new Bullet(640-offsetX,360-offsetY));
-        playSound("/shoot.wav");
-    }
+   
 
     @Override
     public void keyPressed(KeyEvent e) {
@@ -198,6 +304,8 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
             firing = true;
             fireTimer.start();
         }
+        if (e.getKeyCode() == KeyEvent.VK_C) cockpitVisible = !cockpitVisible;
+
     }
     @Override
     public void keyReleased(KeyEvent e) {
@@ -206,15 +314,18 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         if (e.getKeyCode() == KeyEvent.VK_A) left = false;
         if (e.getKeyCode() == KeyEvent.VK_D) right = false;
         if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-            firing = false;
-            fireTimer.stop();
-        }
+             firing = false;
+              fireTimer.stop();
+    
+         if (overheat < 100) overheated = false;
+}
+
     }
     @Override public void keyTyped(KeyEvent e) {}
 
     public static void main(String[] args) { new SpaceShipGame(); }
 
-    // --- 下面是子類別和更新邏輯 ---
+    
 
     class Bullet {
     public double x, y, z;
@@ -222,7 +333,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     int lifetime = 0;
     boolean isEnemy = false;
 
-    // 玩家子彈建構子
+
     public Bullet(int startX, int startY) {
     x = startX;
     y = startY;
