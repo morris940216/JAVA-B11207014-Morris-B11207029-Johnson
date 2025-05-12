@@ -25,9 +25,11 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     private int score = 0;
     private int hp = 100;
     private Clip bgmClip;
+    private boolean shopOpen = false;
+    private int coins = 0;          
     
    private double overheat = 0;              
-   private final double HEAT_PER_SHOT = 2;   
+   private final double HEAT_PER_SHOT = 5;   
    private final double COOL_RATE = 0.4;    
    private boolean overheated = false; 
    private int cockpitShakeX = 0, cockpitShakeY = 0;       
@@ -41,7 +43,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
    
     public SpaceShipGame() {
         JFrame frame = new JFrame("SpaceShip 3D FPS");
-        frame.setSize(1280, 720);
+        frame.setSize(1920, 1080);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.add(this);
         startBackgroundMusic("/bgm.wav");
@@ -168,7 +170,7 @@ int cockpitY = getHeight() - destH;
     g.setColor(Color.RED);
     for (Bullet b : enemyBullets) {
         double scale = 300.0 / b.z;
-        int size = Math.min((int)(10 * scale), 26);   
+        int size = Math.min((int)(10 * scale), 100); 
         g.fillOval((int)b.x - size/2, (int)b.y - size/2, size, size);
     }
 
@@ -190,7 +192,7 @@ int cockpitY = getHeight() - destH;
     for (Bullet b : bullets) {
         double scale = 300.0 / b.z;
         int size = Math.min((int)(20 * scale), 22);  
-        g.fillOval((int)b.x + offsetX - size/2,
+        g.fillOval((int)b.x + offsetX+60 - size/2,
                    (int)b.y + offsetY - size/2, size, size);
     }
 
@@ -199,17 +201,18 @@ int cockpitY = getHeight() - destH;
     for (Explosion ex : explosions) {
         g.fillOval(ex.x - ex.radius/2, ex.y - ex.radius/2, ex.radius, ex.radius);
     }
+    
+        g.setColor(Color.DARK_GRAY);
+    g.fillRect(0, 0, getWidth(), 50);
+    g.fillRect(0, getHeight()-50, getWidth(), 50);
+    g.fillRect(0, 0, 50, getHeight());
+    g.fillRect(getWidth()-50, 0, 50, getHeight());
+
 
    
     if (cockpitVisible) {
     g.drawImage(
-        cockpitImage,
-        cockpitShakeX,
-        cockpitY   + cockpitShakeY,             
-                getWidth() + cockpitShakeX,
-        cockpitY   + destH + cockpitShakeY,     
-        0, sy1, imgW, sy2,                      
-        null
+        cockpitImage,20,-50,1500,950,null
     );}
 
     
@@ -224,33 +227,32 @@ int cockpitY = getHeight() - destH;
 
 
     g.setColor(Color.GRAY);
-    g.fillRect(barX, barY, barW, barH);
+    g.fillRect(barX, barY+200, barW, barH);
     g.setColor(Color.GREEN);
-    g.fillRect(barX, barY, (int)(barW * hp / 100.0), barH);
+    g.fillRect(barX, barY+200, (int)(barW * hp / 100.0), barH);
     g.setColor(Color.WHITE);
-    g.drawRect(barX, barY, barW, barH);
-    g.drawString("HP", barX - 40, barY + 16);
+    g.drawRect(barX, barY+200, barW, barH);
+    g.drawString("HP", barX - 40, barY + 16+200);
 
     
-    g.setColor(Color.GRAY);
-    g.fillRect(barX, heatY, barW, barH);
+
     float heatRatio = (float) overheat / 100f;
     g.setColor(heatRatio < 0.6 ? Color.CYAN :
                heatRatio < 0.9 ? Color.ORANGE : Color.RED);
-    g.fillRect(barX, heatY, (int)(barW * heatRatio), barH);
+    g.fillRect(barX, heatY+200, (int)(barW * heatRatio), barH);
     g.setColor(Color.WHITE);
-    g.drawRect(barX, heatY, barW, barH);
-    g.drawString("HEAT", barX - 55, heatY + 16);
+    g.drawRect(barX, heatY+200, barW, barH);
+    g.drawString("HEAT", barX - 55, heatY + 16+200);
     if (overheated) {
         g.setColor(Color.RED);
-        g.drawString("OVERHEATED!", barX + barW + 15, heatY + 16);
+        g.drawString("OVERHEATED!", barX + barW + 15, heatY + 16+200);
     }
     g.setColor(new Color(0, 32, 0, 180));
-    g.fillOval(radarX, radarY, radarR * 2, radarR * 2);
+    g.fillOval(radarX-120, radarY+155, radarR * 2, radarR * 2);
     g.setColor(Color.GREEN);
-    g.drawOval(radarX, radarY, radarR * 2, radarR * 2);
-    g.drawLine(radarX + radarR, radarY, radarX + radarR, radarY + radarR * 2);
-    g.drawLine(radarX, radarY + radarR, radarX + radarR * 2, radarY + radarR);
+    g.drawOval(radarX-120, radarY+155, radarR * 2, radarR * 2);
+    g.drawLine(radarX-120 + radarR, radarY+155, radarX + radarR-120, radarY +155+ radarR * 2);
+    g.drawLine(radarX-120, radarY+155 + radarR, radarX-120 + radarR * 2, radarY+155 + radarR);
 
     for (Enemy en : enemies) {
         double sx = 640 + (en.x - 640 + offsetX) * 300 / en.z;
@@ -260,16 +262,28 @@ int cockpitY = getHeight() - destH;
         if (Math.hypot(dx, dy) < radarR) {
             int dotX = (int)(radarX + radarR + dx);
             int dotY = (int)(radarY + radarR + dy);
-            g.fillOval(dotX - 3, dotY - 3, 6, 6);
+            g.fillOval(dotX - 3-120, dotY +155- 3, 6, 6);
+           
         }
+    if (shopOpen) {
+    Graphics2D g2 = (Graphics2D) g;
+    g2.setColor(new Color(0,0,0,200));             
+    g2.fillRect(100, 100, getWidth()-200, getHeight()-200);
+
+    g2.setColor(Color.WHITE);
+    g2.setFont(new Font("Arial", Font.BOLD, 28));
+    g2.drawString("SPACE SHOP", 150, 150);
+
+    g2.setFont(new Font("Arial", Font.PLAIN, 20));
+    g2.drawString("[1] Repair 20 HP  (Cost 50)",   150, 210);
+    g2.drawString("[2] Faster Fire   (Cost 80)",   150, 250);
+    g2.drawString("[3] HeatRate decrease  (Cost 100)",   150, 290);
+    g2.drawString("Coins: " + coins,               150, 340);
+}
+
     }
 
   
-    g.setColor(Color.DARK_GRAY);
-    g.fillRect(0, 0, getWidth(), 50);
-    g.fillRect(0, getHeight()-50, getWidth(), 50);
-    g.fillRect(0, 0, 50, getHeight());
-    g.fillRect(getWidth()-50, 0, 50, getHeight());
 
     g.setColor(Color.WHITE);
     g.setFont(new Font("Arial", Font.BOLD, 24));
@@ -305,6 +319,29 @@ int cockpitY = getHeight() - destH;
             fireTimer.start();
         }
         if (e.getKeyCode() == KeyEvent.VK_C) cockpitVisible = !cockpitVisible;
+        if (e.getKeyCode() == KeyEvent.VK_B) {
+         shopOpen = !shopOpen;
+         paused = shopOpen;          
+}
+
+      if (shopOpen) {
+    switch (e.getKeyCode()) {
+        case KeyEvent.VK_1:
+            if (coins >= 50 && hp <= 80) { hp += 20; coins -= 50; }
+            break;
+        case KeyEvent.VK_2:
+            if (coins >= 80) { fireTimer.setDelay(30); coins -= 80; }
+            break;
+        case KeyEvent.VK_3:
+            if (coins >= 100) { fireTimer.setDelay(30); coins -= 100; }
+            break;
+        case KeyEvent.VK_B: 
+            break;
+        default: return;
+    }
+    repaint();
+    return;           
+}
 
     }
     @Override
@@ -363,10 +400,55 @@ int cockpitY = getHeight() - destH;
 }
 
 }
-    class Enemy { double x, y, z;
-        public Enemy(double x, double y) { this.x = x; this.y = y; this.z = 1000; }
-        public void move() { z -= 10; }
+    abstract class Enemy {
+    double x, y, z;
+    int   hp;
+    int   size;
+    Color color;
+
+    Enemy(double x, double y, int z, int hp, int size, Color color) {
+        this.x = x; this.y = y; this.z = z;
+        this.hp = hp;
+        this.size = size;
+        this.color = color;
     }
+
+    
+    void move() { z -= 10; }         
+    
+    void shoot(List<Bullet> list) { } 
+}
+  
+class ScoutEnemy extends Enemy {
+    ScoutEnemy(double x, double y) {
+        super(x, y, 800, 1, 12, Color.RED);
+    }
+    @Override void move() { z -= 20; }   
+}
+
+
+class ShooterEnemy extends Enemy {
+    private int cooldown = 0;
+    ShooterEnemy(double x, double y) {
+        super(x, y, 1000, 3, 18, new Color(255,140,0)); 
+    }
+    @Override void shoot(List<Bullet> list) {
+        if (--cooldown <= 0) {
+            list.add(new Bullet(
+                (int)x, (int)y, 0, 0));  
+            cooldown = 60;               
+        }
+    }
+}
+
+class TankEnemy extends Enemy {
+    TankEnemy(double x, double y) {
+        super(x, y, 1200, 6, 26, Color.MAGENTA);
+    }
+    @Override void move() { z -= 6; }    
+}
+
+
 
     class Star { int x, y, z;
         public Star(int x, int y, int z) { this.x = x; this.y = y; this.z = z; }
@@ -389,7 +471,10 @@ int cockpitY = getHeight() - destH;
         if (random.nextInt(100) < 3) {
             double startX = 640 + random.nextInt(400) - 200;
             double startY = 360 + random.nextInt(300) - 150;
-            enemies.add(new Enemy(startX, startY));
+            int roll = random.nextInt(100);
+            if (roll < 50)         enemies.add(new ScoutEnemy(startX, startY));
+            else if (roll < 85)    enemies.add(new ShooterEnemy(startX, startY));
+            else                   enemies.add(new TankEnemy(startX, startY));
         }
         for (Enemy e : enemies) {
             e.move();
@@ -401,7 +486,15 @@ int cockpitY = getHeight() - destH;
                double length = Math.hypot(dx, dy);
                int targetX = startX + (int)(dx / length * 100);
                int targetY = startY + (int)(dy / length * 100);
-               enemyBullets.add(new Bullet(startX, startY, targetX, targetY));
+               if (random.nextInt(100) < 3) {
+               double sx = 640 + random.nextInt(400) - 200;
+               double sy = 360 + random.nextInt(300) - 150;
+               int type = random.nextInt(100);
+               if (type < 50)       enemies.add(new ScoutEnemy(sx, sy));
+               else if (type < 85)  enemies.add(new ShooterEnemy(sx, sy));
+               else                 enemies.add(new TankEnemy(sx, sy));
+}
+
             }
         }
         
@@ -429,6 +522,7 @@ int cockpitY = getHeight() - destH;
                        explosions.add(new Explosion(ex, ey));
                        playSound("/explosion.wav");
                        score += 10;
+                       coins+=10;
                      }
                   }
             }
