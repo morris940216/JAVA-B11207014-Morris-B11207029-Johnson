@@ -19,6 +19,8 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     private List<Enemy> enemies = new ArrayList<>();
     private List<Explosion> explosions = new ArrayList<>();
     private List<Star> stars = new ArrayList<>();
+    
+
     private Timer timer, fireTimer;
     private Random random = new Random();
     private int offsetX, offsetY;
@@ -29,7 +31,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     private int coins = 0;          
     
    private double overheat = 0;              
-   private final double HEAT_PER_SHOT = 5;   
+   private final double HEAT_PER_SHOT = 3;   
    private final double COOL_RATE = 0.4;    
    private boolean overheated = false; 
    private int cockpitShakeX = 0, cockpitShakeY = 0;       
@@ -249,7 +251,7 @@ int cockpitY = getHeight() - destH;
     }
     g.setColor(new Color(0, 32, 0, 180));
     g.fillOval(radarX-120, radarY+155, radarR * 2, radarR * 2);
-    g.setColor(Color.GREEN);
+    g.setColor(Color.CYAN);
     g.drawOval(radarX-120, radarY+155, radarR * 2, radarR * 2);
     g.drawLine(radarX-120 + radarR, radarY+155, radarX + radarR-120, radarY +155+ radarR * 2);
     g.drawLine(radarX-120, radarY+155 + radarR, radarX-120 + radarR * 2, radarY+155 + radarR);
@@ -382,7 +384,7 @@ int cockpitY = getHeight() - destH;
 }
 
 
-    // 敵人子彈建構子
+  
     public Bullet(int startX, int startY, int targetX, int targetY) {
         x = startX;
         y = startY;
@@ -397,55 +399,57 @@ int cockpitY = getHeight() - destH;
     z += dz;
     lifetime++;
     
-}
+}}
 
-}
+
     abstract class Enemy {
     double x, y, z;
-    int   hp;
-    int   size;
+    int hp, size;
     Color color;
+    int scoreValue, coinValue;
 
-    Enemy(double x, double y, int z, int hp, int size, Color color) {
+    Enemy(double x, double y, int z,
+          int hp, int size, Color color,
+          int scoreValue, int coinValue) {
         this.x = x; this.y = y; this.z = z;
         this.hp = hp;
         this.size = size;
         this.color = color;
+        this.scoreValue = scoreValue;
+        this.coinValue  = coinValue;
     }
 
-    
-    void move() { z -= 10; }         
-    
-    void shoot(List<Bullet> list) { } 
-}
+    void move()  { z -= 10; }             
+    void shoot(List<Bullet> list) { }    
+}                                          
+
   
 class ScoutEnemy extends Enemy {
     ScoutEnemy(double x, double y) {
-        super(x, y, 800, 1, 12, Color.RED);
+        super(x, y, 800,  
+              1, 12, Color.RED,
+              10, 5);      
     }
-    @Override void move() { z -= 20; }   
+    @Override void move() { z -= 20; }
 }
-
 
 class ShooterEnemy extends Enemy {
     private int cooldown = 0;
     ShooterEnemy(double x, double y) {
-        super(x, y, 1000, 3, 18, new Color(255,140,0)); 
+        super(x, y, 1000,
+              3, 18, new Color(255,140,0),
+              25, 15);   
     }
-    @Override void shoot(List<Bullet> list) {
-        if (--cooldown <= 0) {
-            list.add(new Bullet(
-                (int)x, (int)y, 0, 0));  
-            cooldown = 60;               
-        }
-    }
+    @Override void shoot(List<Bullet> list) { }
 }
 
 class TankEnemy extends Enemy {
     TankEnemy(double x, double y) {
-        super(x, y, 1200, 6, 26, Color.MAGENTA);
+        super(x, y, 1200,
+              6, 26, Color.MAGENTA,
+              50, 30);     
     }
-    @Override void move() { z -= 6; }    
+    @Override void move() { z -= 6; }
 }
 
 
@@ -460,88 +464,74 @@ class TankEnemy extends Enemy {
     }
 
     private void updateGameObjects() {
-        for (Star s : stars) {
-            s.z -= 5;
-            if (s.z <= 50) {
-                s.x = random.nextInt(1180) + 50;
-                s.y = random.nextInt(620) + 50;
-                s.z = random.nextInt(800) + 200;
-            }
-        }
-        if (random.nextInt(100) < 3) {
-            double startX = 640 + random.nextInt(400) - 200;
-            double startY = 360 + random.nextInt(300) - 150;
-            int roll = random.nextInt(100);
-            if (roll < 50)         enemies.add(new ScoutEnemy(startX, startY));
-            else if (roll < 85)    enemies.add(new ShooterEnemy(startX, startY));
-            else                   enemies.add(new TankEnemy(startX, startY));
-        }
-        for (Enemy e : enemies) {
-            e.move();
-            if (random.nextInt(100) < 2) {
-               int startX = (int)(640 + (e.x - 640 + offsetX) * 300 / e.z);
-               int startY = (int)(360 + (e.y - 360 + offsetY) * 300 / e.z);
-               int dx = startX - 640;
-               int dy = startY - 360;
-               double length = Math.hypot(dx, dy);
-               int targetX = startX + (int)(dx / length * 100);
-               int targetY = startY + (int)(dy / length * 100);
-               if (random.nextInt(100) < 3) {
-               double sx = 640 + random.nextInt(400) - 200;
-               double sy = 360 + random.nextInt(300) - 150;
-               int type = random.nextInt(100);
-               if (type < 50)       enemies.add(new ScoutEnemy(sx, sy));
-               else if (type < 85)  enemies.add(new ShooterEnemy(sx, sy));
-               else                 enemies.add(new TankEnemy(sx, sy));
-}
+    List<Enemy> enemiesToAdd = new ArrayList<>();
 
-            }
-        }
-        
-        bullets.forEach(Bullet::move);
-        enemyBullets.forEach(Bullet::move);
-        explosions.forEach(Explosion::update);
+    if (random.nextInt(100) < 3) {
+        double sx = 640 + random.nextInt(400) - 200;
+        double sy = 360 + random.nextInt(300) - 150;
+        int roll = random.nextInt(100);
+        if (roll < 50)            enemiesToAdd.add(new ScoutEnemy(sx, sy));
+        else if (roll < 85)       enemiesToAdd.add(new ShooterEnemy(sx, sy));
+        else                      enemiesToAdd.add(new TankEnemy(sx, sy));
+    }
 
-        bullets.removeIf(b -> b.x < 0 || b.x > getWidth() || b.y < 0 || b.y > getHeight() || b.z > 1000);
-        enemyBullets.removeIf(b -> b.x < 0 || b.x > getWidth() || b.y < 0 || b.y > getHeight());
-        enemies.removeIf(e -> e.z <= 50);
-        explosions.removeIf(ex -> ex.radius > 50);
-
-        List<Enemy> enemiesToRemove = new ArrayList<>();
-        List<Bullet> bulletsToRemove = new ArrayList<>();
-
-        for (Bullet b : bullets) {
-            for (Enemy e : enemies) {
-                  int ex = (int)e.x;
-                  int ey = (int)e.y;
-                  int ez = (int)e.z;
-                  if(ez==b.z){
-                     if (Math.hypot(b.x - ex, b.y - ey) < 30) {
-                       enemiesToRemove.add(e);
-                       bulletsToRemove.add(b);
-                       explosions.add(new Explosion(ex, ey));
-                       playSound("/explosion.wav");
-                       score += 10;
-                       coins+=10;
-                     }
-                  }
-            }
-        }
-        enemies.removeAll(enemiesToRemove);
-        bullets.removeAll(bulletsToRemove);
-        for (Bullet b : enemyBullets) {
-        if(b.z ==20){
-            int shipX = 640 -offsetX;
-            int shipY = 360 -offsetY;
-            if (Math.hypot(b.x - shipX, b.y - shipY) < 20) {
-                hp -= 10;
-                playSound("/hit.wav");
-                explosions.add(new Explosion((int)b.x, (int)b.y));
-                b.x = -1000;
-                b.y = -1000;
-                if (hp <= 0) gameOver = true;
-            }
-        }
+    for (Star s : stars) {
+        s.z -= 5;
+        if (s.z <= 50) {
+            s.x = random.nextInt(getWidth() - 100) + 50;
+            s.y = random.nextInt(getHeight() - 100) + 50;
+            s.z = random.nextInt(800) + 200;
         }
     }
-}
+
+    List<Enemy> enemiesToRemove = new ArrayList<>();
+    for (Enemy e : enemies) {
+        e.move();
+        e.shoot(enemyBullets);
+        if (e.z <= 50) enemiesToRemove.add(e);
+    }
+
+    bullets.forEach(Bullet::move);
+    enemyBullets.forEach(Bullet::move);
+    explosions.forEach(Explosion::update);
+
+    bullets.removeIf(b -> b.z > 1000 || b.lifetime > 300);
+    enemyBullets.removeIf(b -> b.z < 0);
+    explosions.removeIf(ex -> ex.radius > 50);
+
+    List<Bullet> bulletsToRemove = new ArrayList<>();
+    for (Bullet b : bullets) {
+        for (Enemy e : enemies) {
+            if (Math.abs(e.z - b.z) < 30 &&
+                Math.hypot(b.x - e.x, b.y - e.y) < 30) {
+                e.hp--;
+                bulletsToRemove.add(b);
+                if (e.hp <= 0) {
+                    enemiesToRemove.add(e);
+                    explosions.add(new Explosion((int) e.x, (int) e.y));
+                    playSound("/explosion.wav");
+                    score += e.scoreValue;
+                    coins += e.coinValue;
+                }
+                break;
+            }
+        }
+    }
+
+    int shipX = 640 - offsetX;
+    int shipY = 360 - offsetY;
+    for (Bullet b : enemyBullets) {
+        if (b.z <= 20 && Math.hypot(b.x - shipX, b.y - shipY) < 25) {
+            hp -= 10;
+            playSound("/hit.wav");
+            explosions.add(new Explosion((int) b.x, (int) b.y));
+            b.z = -999;
+            if (hp <= 0) gameOver = true;
+        }
+    }
+
+    enemies.removeAll(enemiesToRemove);
+    bullets.removeAll(bulletsToRemove);
+    enemies.addAll(enemiesToAdd);
+
+}}
