@@ -290,7 +290,7 @@ int cockpitY = getHeight() - destH;
     g.setColor(Color.WHITE);
     g.setFont(new Font("Arial", Font.BOLD, 24));
     g.drawString("Score: " + score, 60, 40);
-    g.drawString("HP: " + hp, 60, 70);
+    g.drawString("Coins: " + coins, 60, 70);
 
     g.setFont(new Font("Arial", Font.PLAIN, 18));
     g.drawString("[W] Up [S] Down [A] Left [D] Right [Space] Fire [ESC] Pause [C] Cockpit",
