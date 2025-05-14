@@ -28,11 +28,11 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     private int hp = 100;
     private Clip bgmClip;
     private boolean shopOpen = false;
-    private int coins = 0;          
+    private int coins = 1000;          
     
    private double overheat = 0;              
-   private final double HEAT_PER_SHOT = 3;   
-   private final double COOL_RATE = 0.4;    
+   private double heatPerShot = 3;   
+   private double coolRate    = 0.4;   
    private boolean overheated = false; 
    private int cockpitShakeX = 0, cockpitShakeY = 0;       
    private boolean cockpitVisible = true;
@@ -94,7 +94,7 @@ public void actionPerformed(ActionEvent e) {
     offsetY += velocityY;
 
    
-    overheat = Math.max(0, overheat - COOL_RATE);
+    overheat = Math.max(0, overheat - coolRate);
     if (overheated && overheat < 60) {
         overheated = false;
         if (firing) fireTimer.start();
@@ -114,7 +114,7 @@ public void actionPerformed(ActionEvent e) {
       if (overheated) return;                
          bullets.add(new Bullet(640 - offsetX, 360 - offsetY));
          playSound("/shoot.wav");
-         overheat += HEAT_PER_SHOT;             
+         overheat += heatPerShot;             
       if (overheat >= 100) {                 
         overheat = 100;
         overheated = true;
@@ -178,6 +178,7 @@ int cockpitY = getHeight() - destH;
 
    
     for (Enemy e : enemies) {
+        g.setColor(e.color); 
         double scale = 300.0 / e.z;
         int cx = (int)(640 + (e.x - 640 + offsetX) * scale);
         int cy = (int)(360 + (e.y - 360 + offsetY) * scale);
@@ -249,6 +250,8 @@ int cockpitY = getHeight() - destH;
         g.setColor(Color.RED);
         g.drawString("OVERHEATED!", barX + barW + 15, heatY + 16+200);
     }
+    g.drawString(String.format("Heat/Shot: %.1f", heatPerShot), barX + barW + 40, heatY + 16 + 200);
+
     g.setColor(new Color(0, 32, 0, 180));
     g.fillOval(radarX-120, radarY+155, radarR * 2, radarR * 2);
     g.setColor(Color.CYAN);
@@ -335,8 +338,11 @@ int cockpitY = getHeight() - destH;
             if (coins >= 80) { fireTimer.setDelay(30); coins -= 80; }
             break;
         case KeyEvent.VK_3:
-            if (coins >= 100) { fireTimer.setDelay(30); coins -= 100; }
-            break;
+             if (coins >= 100 && heatPerShot > 1.0) {  
+        heatPerShot -= 0.5;                  
+        coins -= 100;
+    }
+          break;
         case KeyEvent.VK_B: 
             break;
         default: return;
@@ -366,40 +372,42 @@ int cockpitY = getHeight() - destH;
 
     
 
-    class Bullet {
-    public double x, y, z;
-    double dx, dy, dz;
-    int lifetime = 0;
-    boolean isEnemy = false;
+  class Bullet {
+    double x, y, z;
+    double dx, dy, dz;      
+    int    lifetime = 0;
+    boolean isEnemy;
 
+    
+    Bullet(int startX, int startY) {
+        x = startX;  y = startY;  z = 100;
+        dx = 0;      dy = 0;      dz = 20;
+        isEnemy = false;
+    }
 
-    public Bullet(int startX, int startY) {
-    x = startX;
-    y = startY;
-    z = 100;
-    dx = 0;
-    dy = 0;
-    dz = 20;
-    isEnemy = false;
+   
+    Bullet(int startX, int startY, int playerX, int playerY) {
+        x = startX;  y = startY;  z = 1000;
+        double vx = playerX - startX;
+        double vy = playerY - startY;
+        double len = Math.hypot(vx, vy);
+        dx = vx / len * 8;         
+        dy = vy / len * 8;
+        dz = -20;              
+        isEnemy = true;
+    }
+
+    void move() {
+        x += dx;
+        y += dy;
+        z += dz;
+        lifetime++;
+    }
 }
 
 
   
-    public Bullet(int startX, int startY, int targetX, int targetY) {
-        x = startX;
-        y = startY;
-        z = 1000;
-       dx = 0;
-       dy = 0;
-        dz = -20;
-        isEnemy = true;
-    }
-
-        public void move() {
-    z += dz;
-    lifetime++;
-    
-}}
+   
 
 
     abstract class Enemy {
@@ -435,22 +443,67 @@ class ScoutEnemy extends Enemy {
 
 class ShooterEnemy extends Enemy {
     private int cooldown = 0;
+
     ShooterEnemy(double x, double y) {
-        super(x, y, 1000,
-              3, 18, new Color(255,140,0),
-              25, 15);   
+        super(x, y, 1000, 3, 18, new Color(255,140,0), 25, 15);
     }
-    @Override void shoot(List<Bullet> list) { }
+
+    @Override void shoot(List<Bullet> list) {
+        if (--cooldown <= 0) {
+            int px = 640 - offsetX;     
+            int py = 360 - offsetY;
+            list.add(new Bullet((int)x, (int)y, px, py));
+            cooldown = 60;             
+        }
+    }
 }
 
 class TankEnemy extends Enemy {
+    private int cooldown = 0;               
+
     TankEnemy(double x, double y) {
-        super(x, y, 1200,
-              6, 26, Color.MAGENTA,
-              50, 30);     
+        super(x, y, 1200,                     
+              6, 26, Color.MAGENTA,          
+              50, 30);                    
     }
-    @Override void move() { z -= 6; }
+
+    @Override void move() { z -= 6; }         
+
+   
+    @Override
+    void shoot(List<Bullet> list) {
+        if (--cooldown > 0) return;         
+
+        int playerX = 640 - offsetX;        
+        int playerY = 360 - offsetY;
+
+        for (double angle = -0.3; angle <= 0.3; angle += 0.15) {
+
+           
+            double vx = playerX - x;
+            double vy = playerY - y;
+            double len = Math.hypot(vx, vy);
+            double nx = vx / len;
+            double ny = vy / len;
+
+         
+            double cos = Math.cos(angle), sin = Math.sin(angle);
+            double rx = nx * cos - ny * sin;
+            double ry = nx * sin + ny * cos;
+
+            
+            Bullet b = new Bullet((int) x, (int) y, 0, 0);
+            b.dx = rx * 6;        
+            b.dy = ry * 6;
+            b.dz = -15;           
+            b.isEnemy = true;
+
+            list.add(b);
+        }
+        cooldown = 70;     
+    }
 }
+
 
 
 
@@ -508,7 +561,11 @@ class TankEnemy extends Enemy {
                 bulletsToRemove.add(b);
                 if (e.hp <= 0) {
                     enemiesToRemove.add(e);
-                    explosions.add(new Explosion((int) e.x, (int) e.y));
+                    double scale = 300.0 / e.z;                
+                    int exScr = (int)(640 + (e.x - 640 + offsetX) * scale);
+                    int eyScr = (int)(360 + (e.y - 360 + offsetY) * scale);
+                    explosions.add(new Explosion(exScr, eyScr));
+
                     playSound("/explosion.wav");
                     score += e.scoreValue;
                     coins += e.coinValue;
@@ -518,10 +575,22 @@ class TankEnemy extends Enemy {
         }
     }
 
-    int shipX = 640 - offsetX;
+    int shipX = 640 - offsetX-60;
     int shipY = 360 - offsetY;
+    for (Enemy e : enemies) {
+   
+    if (e.z <= 60 && Math.hypot(e.x - shipX, e.y - shipY) < e.size+80) {
+        hp -= 20;                         
+        e.hp = 0;                       
+        enemiesToRemove.add(e);         
+        playSound("/hit.wav");
+       
+        explosions.add(new Explosion(shipX, shipY));
+        if (hp <= 0) gameOver = true;
+    }
+}
     for (Bullet b : enemyBullets) {
-        if (b.z <= 20 && Math.hypot(b.x - shipX, b.y - shipY) < 25) {
+        if (b.z <= 20 && Math.hypot(b.x - shipX, b.y - shipY) < 30) {
             hp -= 10;
             playSound("/hit.wav");
             explosions.add(new Explosion((int) b.x, (int) b.y));
