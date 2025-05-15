@@ -23,7 +23,8 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     private boolean warningOn      = false; 
     private int     warningFrames  = 0;     
     private final int WARNING_LEN  = 60;    
-    
+    private int worldSpeed = 1;   
+
     private int  wave             = 1;   
     private int  enemiesToSpawn   = 0;   
     private int  spawnCooldown    = 0;   
@@ -397,7 +398,7 @@ public void paintComponent(Graphics g) {
     g.drawString("Coins: " + coins, 60, 70);
 
     g.setFont(new Font("Arial", Font.PLAIN, 18));
-    g.drawString("[W] Up [S] Down [A] Left [D] Right [Space] Fire [ESC] Pause [C] Cockpit",
+    g.drawString("[W] Up [S] Down [A] Left [D] Right [Space] Fire [ESC] Pause [C] Cockpit view [Q]Hover [E]Reverse",
                  120, getHeight() - 20);
 
     if (paused && !shopOpen) {
@@ -451,6 +452,7 @@ if (interWaveTimer > 0) {
 
     @Override
     public void keyPressed(KeyEvent e) {
+         
         if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
             paused = !paused;
             return;                            }
@@ -507,7 +509,19 @@ if (interWaveTimer > 0) {
         if (e.getKeyCode() == KeyEvent.VK_S) down = true;
         if (e.getKeyCode() == KeyEvent.VK_A) left = true;
         if (e.getKeyCode() == KeyEvent.VK_D) right = true;
-        
+        switch (e.getKeyCode()) {
+
+        case KeyEvent.VK_Q:              
+            if      (worldSpeed == 0)  worldSpeed = 1;  
+            else if (worldSpeed == 1)  worldSpeed = 0;  
+            else  worldSpeed = 0;  
+            break;
+
+        case KeyEvent.VK_E:                 
+            if      (worldSpeed == -1) worldSpeed = 1;   
+            else                       worldSpeed = -1; 
+            break; 
+        }
         if (e.getKeyCode() == KeyEvent.VK_SPACE && !paused) {
             firing = true;
             fireTimer.start();
@@ -547,6 +561,7 @@ if (interWaveTimer > 0) {
         if (e.getKeyCode() == KeyEvent.VK_S) down = false;
         if (e.getKeyCode() == KeyEvent.VK_A) left = false;
         if (e.getKeyCode() == KeyEvent.VK_D) right = false;
+         
         if (e.getKeyCode() == KeyEvent.VK_SPACE) {
              firing = false;
               fireTimer.stop();
@@ -637,7 +652,7 @@ class ScoutEnemy extends Enemy {
               1, 12, Color.RED,
               10, 5);      
     }
-    @Override void move() { z -= 20; }
+    @Override void move() { z -= 10* (worldSpeed+1)/3; }
 }
 
 class ShooterEnemy extends Enemy {
@@ -646,7 +661,7 @@ class ShooterEnemy extends Enemy {
     ShooterEnemy(double x, double y) {
         super(x, y, 1000, 3, 18, new Color(255,140,0), 25, 15);
     }
-
+    @Override void move() { z -= 5* (worldSpeed+1)/3; }
     @Override void shoot(List<Bullet> list) {
         if (--cooldown <= 0) {
             int px = 640 - offsetX;     
@@ -666,7 +681,7 @@ class TankEnemy extends Enemy {
               50, 30);                    
     }
 
-    @Override void move() { z -= 6; }         
+    @Override void move() { z -= 3* (worldSpeed+1)/3; }         
 
    
     @Override
@@ -740,10 +755,12 @@ else if (interWaveTimer > 0 && --interWaveTimer == 0) {
 
 
     for (Star s : stars) {
-    s.z -= 2 + s.layer * 2;                
-    if (s.z <= 50) {                         
-        s.x = random.nextInt(getWidth()-100) + 50;
-        s.y = random.nextInt(getHeight()-100) + 50;
+    int base = 2 + s.layer * 2;                
+    s.z -= base * worldSpeed;                 
+
+    if (s.z <= 50) {                           
+        s.x = random.nextInt(getWidth() - 100) + 50;
+        s.y = random.nextInt(getHeight() - 100) + 50;
         s.z = 800 + s.layer * 300;
     }
 }
