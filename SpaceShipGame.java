@@ -7,7 +7,8 @@ import java.util.Random;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.Clip;
-import java.util.Objects;   
+import java.util.Objects;  
+import java.awt.geom.AffineTransform; 
 
 
 
@@ -81,9 +82,27 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         this.requestFocusInWindow();
         this.requestFocus();
         startWave(); 
-        for (int i = 0; i < 100; i++) {
-            stars.add(new Star(random.nextInt(1180) + 50, random.nextInt(620) + 50, random.nextInt(800) + 200));
-        }
+       
+         stars.clear();
+      for (int i = 0; i < 150; i++) {                 
+          int layer  = random.nextInt(3);             
+          int zBase  = 200 + layer * 300;
+          int z      = zBase + random.nextInt(300);
+
+         Color col;
+         switch (layer) {
+            case 0 -> col = new Color(255,220,200);   
+             case 1 -> col = new Color(200,230,255);   
+            default -> col = new Color(210,210,255);  
+       }
+          int radius = 1 + (layer == 0 ? random.nextInt(2) : 0); 
+
+          stars.add(new Star(
+        random.nextInt(1180) + 50,
+        random.nextInt(620)  + 50,
+        z, layer, col, radius));
+}
+
     }
     
    private void playSound(String path) {
@@ -208,16 +227,47 @@ public void paintComponent(Graphics g) {
     int cockpitY = getHeight() - destH;                   
 
    
-    g.setColor(Color.WHITE);
+   
+   
+    Graphics2D g2 = (Graphics2D) g;
+
+    
+    
+        int galaxyCx = getWidth() / 2;
+      int galaxyCy = getHeight() / 2;
+      int gw = getWidth() * 2;
+      int gh = getHeight();
+
+      GradientPaint gp = new GradientPaint(
+        galaxyCx - gw / 2f, galaxyCy, new Color(255,255,255,40),
+        galaxyCx + gw / 2f, galaxyCy, new Color(180,200,255, 8));
+      g2.setPaint(gp);
+
+      AffineTransform old = g2.getTransform();
+
+      g2.translate(offsetX * 0.35, offsetY * 0.5);
+
+
+      g2.rotate(Math.toRadians(-20), galaxyCx, galaxyCy);
+      g2.fillOval(galaxyCx - gw/2, galaxyCy - gh/4, gw, gh/2);
+
+      g2.setTransform(old);   
+
+    
+    int border = 50;
     for (Star s : stars) {
         double scale = 300.0 / s.z;
-        int x = (int) (640 + (s.x - 640 + offsetX) * scale);
-        int y = (int) (360 + (s.y - 360 + offsetY) * scale);
-        if (x >= 50 && x <= getWidth() - 50 && y >= 50 && y <= getHeight() - 50) {
-            int size = (int) (2 * scale);
-            g.fillOval(x, y, size > 0 ? size : 1, size > 0 ? size : 1);
-        }
+        int x = (int) (640 + (s.x - 640 + offsetX * (1 + s.layer*0.2)) * scale);
+        int y = (int) (360 + (s.y - 360 + offsetY * (1 + s.layer*0.2)) * scale);
+        if (x < border || x > getWidth()-border ||
+            y < border || y > getHeight()-border) continue;
+
+        int sz = Math.max(1, (int)(s.radius * scale));
+        g2.setColor(s.color);
+        g2.fillOval(x, y, sz, sz);
     }
+
+    
 
   
     g.setColor(Color.RED);
@@ -322,7 +372,7 @@ public void paintComponent(Graphics g) {
            
         }
     if (shopOpen) {
-    Graphics2D g2 = (Graphics2D) g;
+    
     g2.setColor(new Color(0,0,0,200));             
     g2.fillRect(100, 100, getWidth()-200, getHeight()-200);
 
@@ -351,7 +401,7 @@ public void paintComponent(Graphics g) {
                  120, getHeight() - 20);
 
     if (paused && !shopOpen) {
-    Graphics2D g2 = (Graphics2D) g;
+    
     g2.setColor(new Color(0, 0, 0, 180));
     g2.fillRect(getWidth()/2 - 250, getHeight()/2 - 160, 500, 260);
 
@@ -509,7 +559,17 @@ if (interWaveTimer > 0) {
 
     public static void main(String[] args) { new SpaceShipGame(); }
 
-    
+    class Star {
+    int x, y, z, layer;
+    Color color;
+    int radius;                
+
+    Star(int x, int y, int z, int layer, Color c, int radius) {
+        this.x = x; this.y = y; this.z = z;
+        this.layer = layer; this.color = c; this.radius = radius;
+    }
+}
+
 
   class Bullet {
     double x, y, z;
@@ -646,9 +706,7 @@ class TankEnemy extends Enemy {
 
 
 
-    class Star { int x, y, z;
-        public Star(int x, int y, int z) { this.x = x; this.y = y; this.z = z; }
-    }
+    
 
     class Explosion { int x, y, radius = 10;
         public Explosion(int x, int y) { this.x = x; this.y = y; }
@@ -682,13 +740,16 @@ else if (interWaveTimer > 0 && --interWaveTimer == 0) {
 
 
     for (Star s : stars) {
-        s.z -= 5;
-        if (s.z <= 50) {
-            s.x = random.nextInt(getWidth() - 100) + 50;
-            s.y = random.nextInt(getHeight() - 100) + 50;
-            s.z = random.nextInt(800) + 200;
-        }
+    s.z -= 2 + s.layer * 2;                
+    if (s.z <= 50) {                         
+        s.x = random.nextInt(getWidth()-100) + 50;
+        s.y = random.nextInt(getHeight()-100) + 50;
+        s.z = 800 + s.layer * 300;
     }
+}
+
+
+    
 
     List<Enemy> enemiesToRemove = new ArrayList<>();
     for (Enemy e : enemies) {
