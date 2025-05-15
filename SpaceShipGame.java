@@ -24,7 +24,8 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     private int     warningFrames  = 0;     
     private final int WARNING_LEN  = 60;    
     private int worldSpeed = 1;   
-
+    private enum DisplayMode { WINDOWED, BORDERLESS, FULLSCREEN }
+    private DisplayMode displayMode = DisplayMode.WINDOWED;
     private int  wave             = 1;   
     private int  enemiesToSpawn   = 0;   
     private int  spawnCooldown    = 0;   
@@ -32,7 +33,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     private int  interWaveTimer   = 0;   
     private final int COUNTDOWN_FRAMES = 180; 
 
-  
+    private JFrame frame;
     private boolean soundOn        = true;  
     private int     warnDistance   = 200;   
     private final int WARN_MIN     = 100;    
@@ -62,11 +63,12 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     private final double MAX_SPEED = 10;
    
     public SpaceShipGame() {
-        JFrame frame = new JFrame("SpaceShip 3D FPS");
-        frame.setSize(1920, 1080);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
-        frame.add(this);
+        frame = new JFrame("SpaceShip 3D FPS");
+
+    applyDisplayMode(DisplayMode.FULLSCREEN);   
+
+    frame.add(this);
+    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         startBackgroundMusic("/bgm.wav");
         if(inital==false){
             interWaveTimer = 0;
@@ -149,7 +151,42 @@ public void actionPerformed(ActionEvent e) {
     updateGameObjects();
     repaint();
 }
+      private void applyDisplayMode(DisplayMode mode) {
+    displayMode = mode;
 
+    GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                                           .getDefaultScreenDevice();
+
+   
+    boolean wasVisible = frame.isVisible();
+    frame.dispose();
+
+    switch (mode) {
+        case WINDOWED -> {
+            frame.setUndecorated(false);
+            frame.setSize(1280, 720);
+            frame.setLocationRelativeTo(null);
+            gd.setFullScreenWindow(null);
+        }
+        case BORDERLESS -> {
+            frame.setUndecorated(true);
+            frame.setSize(1280, 720);
+            frame.setLocationRelativeTo(null);
+            gd.setFullScreenWindow(null);
+        }
+        case FULLSCREEN -> {
+            frame.setUndecorated(true);
+            gd.setFullScreenWindow(frame);      
+        }
+    }
+
+
+    if (mode != DisplayMode.FULLSCREEN) {                  
+        frame.setVisible(true);
+    }
+    if (!wasVisible) frame.setVisible(true);   
+    requestFocusInWindow();                    
+}
 
     private void fireBullet() {
       if (overheated) return;                
@@ -404,7 +441,7 @@ public void paintComponent(Graphics g) {
     if (paused && !shopOpen) {
     
     g2.setColor(new Color(0, 0, 0, 180));
-    g2.fillRect(getWidth()/2 - 250, getHeight()/2 - 160, 500, 260);
+    g2.fillRect(getWidth()/2 - 250, getHeight()/2 +160, 500, 260);
 
     g2.setColor(Color.WHITE);
     g2.setFont(new Font("Arial", Font.BOLD, 40));
@@ -421,6 +458,9 @@ public void paintComponent(Graphics g) {
 
     g2.drawString("[Esc] Return  [B] Shop",
                  getWidth()/2 - 200, getHeight()/2 + 70);
+   g2.drawString("[F] Windowed",             getWidth()/2 - 200, getHeight()/2 + 110);
+    g2.drawString("[G] Borderless Window",    getWidth()/2 - 200, getHeight()/2 + 150);
+    g2.drawString("[H] Fullscreen",           getWidth()/2 - 200, getHeight()/2 + 190);
 }
     if (gameOver) {
         g.setFont(new Font("Arial", Font.BOLD, 48));
@@ -456,7 +496,21 @@ if (interWaveTimer > 0) {
         if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
             paused = !paused;
             return;                            }
-
+    if (paused && !shopOpen) {
+    switch (e.getKeyCode()) {
+       
+        case KeyEvent.VK_F -> applyDisplayMode(DisplayMode.WINDOWED);
+        case KeyEvent.VK_G -> applyDisplayMode(DisplayMode.BORDERLESS);
+        case KeyEvent.VK_H -> applyDisplayMode(DisplayMode.FULLSCREEN);
+        default -> {}
+    }
+    repaint();
+    return;
+}
+ 
+        
+        
+     
     
     if (paused && !shopOpen) {
         switch (e.getKeyCode()) {
@@ -464,6 +518,11 @@ if (interWaveTimer > 0) {
             soundOn = !soundOn;
             if (soundOn)  startBackgroundMusic("/bgm.wav");
             else if (bgmClip != null && bgmClip.isRunning()) bgmClip.stop();
+            break;
+        case KeyEvent.VK_X:                 
+            if (bgmClip != null && bgmClip.isRunning()) bgmClip.stop();
+            
+         System.exit(0);
             break;
         case KeyEvent.VK_B:
              shopOpen = !shopOpen;
