@@ -19,7 +19,15 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     private List<Enemy> enemies = new ArrayList<>();
     private List<Explosion> explosions = new ArrayList<>();
     private List<Star> stars = new ArrayList<>();
+    private boolean warningOn      = false; 
+    private int     warningFrames  = 0;     
+    private final int WARNING_LEN  = 60;    
     
+  
+    private boolean soundOn        = true;  
+    private int     warnDistance   = 200;   
+    private final int WARN_MIN     = 100;    
+    private final int WARN_MAX     = 700;   
 
     private Timer timer, fireTimer;
     private Random random = new Random();
@@ -28,7 +36,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     private int hp = 100;
     private Clip bgmClip;
     private boolean shopOpen = false;
-    private int coins = 1000;          
+    private int coins = 0;          
     
    private double overheat = 0;              
    private double heatPerShot = 3;   
@@ -88,7 +96,7 @@ public void actionPerformed(ActionEvent e) {
     if (down)  offsetY -= 5;
     if (left)  offsetX += 5;
     if (right) offsetX -= 5;
-
+    if (warningOn && --warningFrames <= 0) warningOn = false;
 
     offsetX += velocityX;
     offsetY += velocityY;
@@ -144,17 +152,26 @@ public void actionPerformed(ActionEvent e) {
 public void paintComponent(Graphics g) {
     super.paintComponent(g);
     setBackground(Color.BLACK);
+    if (warningOn && (warningFrames / 6) % 2 == 0) {
+    Graphics2D g2 = (Graphics2D) g;
+    g2.setColor(new Color(255, 0, 0, 120));        
+    g2.fillRect(0, 0, getWidth(), getHeight());     
 
-   
+    g2.setFont(new Font("Arial", Font.BOLD, 72));
+    String msg = "WARNING!";
+    int strW = g2.getFontMetrics().stringWidth(msg);
+    g2.drawString(msg, (getWidth() - strW) / 2, getHeight() / 2);
+}
+    g.setFont(new Font("Arial", Font.PLAIN, 14));
     int imgW = cockpitImage.getWidth(null);
-int imgH = cockpitImage.getHeight(null);
+    int imgH = cockpitImage.getHeight(null);
 
-double imgscale = (double) getWidth() / imgW;      
-int destH   = getHeight() / 2;                  
-int srcH    = (int) (destH / imgscale);            
-int sy1     = imgH - srcH;                      
-int sy2     = imgH;                             
-int cockpitY = getHeight() - destH;                   
+    double imgscale = (double) getWidth() / imgW;      
+    int destH   = getHeight() / 2;                  
+    int srcH    = (int) (destH / imgscale);            
+    int sy1     = imgH - srcH;                      
+    int sy2     = imgH;                             
+    int cockpitY = getHeight() - destH;                   
 
    
     g.setColor(Color.WHITE);
@@ -299,10 +316,27 @@ int cockpitY = getHeight() - destH;
     g.drawString("[W] Up [S] Down [A] Left [D] Right [Space] Fire [ESC] Pause [C] Cockpit",
                  120, getHeight() - 20);
 
-    if (paused) {
-        g.setFont(new Font("Arial", Font.BOLD, 48));
-        g.drawString("PAUSED", getWidth()/2 - 100, getHeight()/2);
-    }
+    if (paused && !shopOpen) {
+    Graphics2D g2 = (Graphics2D) g;
+    g2.setColor(new Color(0, 0, 0, 180));
+    g2.fillRect(getWidth()/2 - 250, getHeight()/2 - 160, 500, 260);
+
+    g2.setColor(Color.WHITE);
+    g2.setFont(new Font("Arial", Font.BOLD, 40));
+    g2.drawString("PAUSED", getWidth()/2 - 90, getHeight()/2 - 90);
+
+    g2.setFont(new Font("Arial", Font.PLAIN, 24));
+    g2.drawString(String.format("[M] BGM : %s",
+                 soundOn ? "ON" : "OFF"),
+                 getWidth()/2 - 200, getHeight()/2 - 30);
+
+    g2.drawString(String.format("[Left Arrow/Right Arrow] Warning Dist : %d",
+                 warnDistance),
+                 getWidth()/2 - 200, getHeight()/2 + 20);
+
+    g2.drawString("[Esc] Return  [B] Shop",
+                 getWidth()/2 - 200, getHeight()/2 + 70);
+}
     if (gameOver) {
         g.setFont(new Font("Arial", Font.BOLD, 48));
         g.drawString("GAME OVER", getWidth()/2 - 150, getHeight()/2);
@@ -314,11 +348,63 @@ int cockpitY = getHeight() - destH;
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) paused = !paused;
+        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            paused = !paused;
+            return;                            }
+
+    
+    if (paused && !shopOpen) {
+        switch (e.getKeyCode()) {
+        case KeyEvent.VK_M:              
+            soundOn = !soundOn;
+            if (soundOn)  startBackgroundMusic("/bgm.wav");
+            else if (bgmClip != null && bgmClip.isRunning()) bgmClip.stop();
+            break;
+        case KeyEvent.VK_B:
+             shopOpen = !shopOpen;
+             paused = shopOpen;
+             if (shopOpen) {
+          switch (e.getKeyCode()) {
+        case KeyEvent.VK_1:
+            if (coins >= 50 && hp <= 80) { hp += 20; coins -= 50; }
+            break;
+        case KeyEvent.VK_2:
+            if (coins >= 80) { fireTimer.setDelay(30); coins -= 80; }
+            break;
+        case KeyEvent.VK_3:
+             if (coins >= 100 && heatPerShot > 1.0) {  
+        heatPerShot -= 0.5;                  
+        coins -= 100;
+    }
+          break;
+        case KeyEvent.VK_B: 
+            break;
+        default: return;
+    }
+    repaint();
+    return;           
+}
+  
+             
+        case KeyEvent.VK_OPEN_BRACKET:      
+        case KeyEvent.VK_LEFT:
+            warnDistance = Math.max(WARN_MIN, warnDistance - 10);
+            break;
+        case KeyEvent.VK_CLOSE_BRACKET:    
+        case KeyEvent.VK_RIGHT:
+            warnDistance = Math.min(WARN_MAX, warnDistance + 10);
+            break;
+        default: 
+            return;
+        }
+        repaint();                          
+          return;
+    }
         if (e.getKeyCode() == KeyEvent.VK_W) up = true;
         if (e.getKeyCode() == KeyEvent.VK_S) down = true;
         if (e.getKeyCode() == KeyEvent.VK_A) left = true;
         if (e.getKeyCode() == KeyEvent.VK_D) right = true;
+        
         if (e.getKeyCode() == KeyEvent.VK_SPACE && !paused) {
             firing = true;
             fireTimer.start();
@@ -578,7 +664,15 @@ class TankEnemy extends Enemy {
     int shipX = 640 - offsetX-60;
     int shipY = 360 - offsetY;
     for (Enemy e : enemies) {
-   
+    if (!warningOn &&
+        e.z <= warnDistance &&
+        e.z >= 50  &&
+        Math.hypot(e.x - shipX, e.y - shipY) < e.size + 80) {
+
+        warningOn     = true;
+        warningFrames = WARNING_LEN;
+        playSound("/warning.wav");   
+    }
     if (e.z <= 60 && Math.hypot(e.x - shipX, e.y - shipY) < e.size+80) {
         hp -= 20;                         
         e.hp = 0;                       
@@ -587,6 +681,7 @@ class TankEnemy extends Enemy {
        
         explosions.add(new Explosion(shipX, shipY));
         if (hp <= 0) gameOver = true;
+        if (gameOver == true&&bgmClip != null && bgmClip.isRunning()) bgmClip.stop();
     }
 }
     for (Bullet b : enemyBullets) {
