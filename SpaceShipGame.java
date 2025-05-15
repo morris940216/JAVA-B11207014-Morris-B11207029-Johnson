@@ -23,6 +23,13 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
     private int     warningFrames  = 0;     
     private final int WARNING_LEN  = 60;    
     
+    private int  wave             = 1;   
+    private int  enemiesToSpawn   = 0;   
+    private int  spawnCooldown    = 0;   
+    private int  enemiesAlive     = 0;   
+    private int  interWaveTimer   = 0;   
+    private final int COUNTDOWN_FRAMES = 180; 
+
   
     private boolean soundOn        = true;  
     private int     warnDistance   = 200;   
@@ -44,6 +51,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
    private boolean overheated = false; 
    private int cockpitShakeX = 0, cockpitShakeY = 0;       
    private boolean cockpitVisible = true;
+   private boolean inital = false;
 
     
 
@@ -55,10 +63,14 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         JFrame frame = new JFrame("SpaceShip 3D FPS");
         frame.setSize(1920, 1080);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
         frame.add(this);
         startBackgroundMusic("/bgm.wav");
-        
-
+        if(inital==false){
+            interWaveTimer = 0;
+            inital = true;
+            }
+         
         this.addKeyListener(this);
         this.setFocusable(true);
 
@@ -68,7 +80,7 @@ public class SpaceShipGame extends JPanel implements KeyListener, ActionListener
         frame.setVisible(true);
         this.requestFocusInWindow();
         this.requestFocus();
-
+        startWave(); 
         for (int i = 0; i < 100; i++) {
             stars.add(new Star(random.nextInt(1180) + 50, random.nextInt(620) + 50, random.nextInt(800) + 200));
         }
@@ -92,6 +104,7 @@ public void actionPerformed(ActionEvent e) {
         repaint();
         return;
     }
+    if (enemiesAlive < 0) enemiesAlive = 0;
     if (up)    offsetY += 5;
     if (down)  offsetY -= 5;
     if (left)  offsetX += 5;
@@ -130,6 +143,27 @@ public void actionPerformed(ActionEvent e) {
     }
 }
    
+    
+   private void startWave() {
+    enemiesToSpawn = 5 + wave * 3;        
+    spawnCooldown  = 60;                  
+    enemiesAlive   = 0;
+}
+
+
+   private Enemy createRandomEnemy() {
+    double sx = 640 + random.nextInt(400) - 200;
+    double sy = 360 + random.nextInt(300) - 150;
+
+    int roll = random.nextInt(100);
+   
+    int shooterWeight = Math.min(40, 10 + wave * 4);
+    int tankWeight    = Math.min(30, 5  + wave * 3);
+   
+    if (roll < shooterWeight)         return new ShooterEnemy(sx, sy);
+    else if (roll < shooterWeight + tankWeight) return new TankEnemy(sx, sy);
+    else                              return new ScoutEnemy(sx, sy);
+}
 
     private void startBackgroundMusic(String soundFile) {
     try {
@@ -341,6 +375,25 @@ public void paintComponent(Graphics g) {
         g.setFont(new Font("Arial", Font.BOLD, 48));
         g.drawString("GAME OVER", getWidth()/2 - 150, getHeight()/2);
     }
+    
+if (interWaveTimer > 0) {                       
+    g.setFont(new Font("Arial", Font.BOLD, 36));
+    g.setColor(Color.YELLOW);
+
+    int sec = interWaveTimer / 60 + 1;          
+    String msg = "NEXT WAVE IN " + sec;
+    int w = g.getFontMetrics().stringWidth(msg);
+
+    g.drawString(msg, getWidth() - w - 60, 50); 
+} else {                                        
+    g.setFont(new Font("Arial", Font.BOLD, 36));
+    g.setColor(Color.CYAN);
+
+    String msg1 = "WAVE  " + wave;
+    g.drawString(msg1, 700, 50);
+    String msg = "Still need " + enemiesToSpawn +" to the next Stage";
+    g.drawString(msg, 540, 80);                     
+}
 }
 
 
@@ -605,14 +658,28 @@ class TankEnemy extends Enemy {
     private void updateGameObjects() {
     List<Enemy> enemiesToAdd = new ArrayList<>();
 
-    if (random.nextInt(100) < 3) {
-        double sx = 640 + random.nextInt(400) - 200;
-        double sy = 360 + random.nextInt(300) - 150;
-        int roll = random.nextInt(100);
-        if (roll < 50)            enemiesToAdd.add(new ScoutEnemy(sx, sy));
-        else if (roll < 85)       enemiesToAdd.add(new ShooterEnemy(sx, sy));
-        else                      enemiesToAdd.add(new TankEnemy(sx, sy));
+   
+
+if (enemiesToSpawn > 0) {
+    if (--spawnCooldown <= 0) {
+        Enemy e = createRandomEnemy();
+        enemies.add(e);
+        
+        enemiesAlive++;
+        spawnCooldown = 30 + random.nextInt(40); 
     }
+}
+
+else if (enemiesAlive == 0 && interWaveTimer == 0) {
+    interWaveTimer = COUNTDOWN_FRAMES;
+}
+
+
+else if (interWaveTimer > 0 && --interWaveTimer == 0) {
+    wave++;
+    startWave();
+}
+
 
     for (Star s : stars) {
         s.z -= 5;
@@ -627,7 +694,10 @@ class TankEnemy extends Enemy {
     for (Enemy e : enemies) {
         e.move();
         e.shoot(enemyBullets);
-        if (e.z <= 50) enemiesToRemove.add(e);
+        if (e.z <= 50){
+         enemiesToRemove.add(e);
+         
+         enemiesAlive--; }
     }
 
     bullets.forEach(Bullet::move);
@@ -651,7 +721,8 @@ class TankEnemy extends Enemy {
                     int exScr = (int)(640 + (e.x - 640 + offsetX) * scale);
                     int eyScr = (int)(360 + (e.y - 360 + offsetY) * scale);
                     explosions.add(new Explosion(exScr, eyScr));
-
+                    enemiesToSpawn--;
+                    enemiesAlive--; 
                     playSound("/explosion.wav");
                     score += e.scoreValue;
                     coins += e.coinValue;
@@ -674,8 +745,10 @@ class TankEnemy extends Enemy {
         playSound("/warning.wav");   
     }
     if (e.z <= 60 && Math.hypot(e.x - shipX, e.y - shipY) < e.size+80) {
+        enemiesAlive--; 
         hp -= 20;                         
-        e.hp = 0;                       
+        e.hp = 0;   
+        enemiesToSpawn--;                    
         enemiesToRemove.add(e);         
         playSound("/hit.wav");
        
