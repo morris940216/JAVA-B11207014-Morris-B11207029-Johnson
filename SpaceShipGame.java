@@ -334,7 +334,7 @@ public void paintComponent(Graphics g) {
     for (Bullet b : bullets) {
         double scale = 300.0 / b.z;
         int size = Math.min((int)(20 * scale), 22);  
-        g.fillOval((int)b.x + offsetX+60 - size/2,
+        g.fillOval((int)b.x + offsetX - size/2,
                    (int)b.y + offsetY - size/2, size, size);
     }
 
