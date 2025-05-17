@@ -456,7 +456,7 @@ public void paintComponent(Graphics g) {
                  warnDistance),
                  getWidth()/2 - 200, getHeight()/2 + 20);
 
-    g2.drawString("[Esc] Return  [B] Shop",
+    g2.drawString("[Esc] Return  [B] Shop [X] Exit",
                  getWidth()/2 - 200, getHeight()/2 + 70);
    g2.drawString("[F] Windowed",             getWidth()/2 - 200, getHeight()/2 + 110);
     g2.drawString("[G] Borderless Window",    getWidth()/2 - 200, getHeight()/2 + 150);
@@ -499,21 +499,15 @@ if (interWaveTimer > 0) {
     if (paused && !shopOpen) {
     switch (e.getKeyCode()) {
        
-        case KeyEvent.VK_F -> applyDisplayMode(DisplayMode.WINDOWED);
-        case KeyEvent.VK_G -> applyDisplayMode(DisplayMode.BORDERLESS);
-        case KeyEvent.VK_H -> applyDisplayMode(DisplayMode.FULLSCREEN);
-        default -> {}
-    }
-    repaint();
-    return;
-}
- 
-        
-        
-     
-    
-    if (paused && !shopOpen) {
-        switch (e.getKeyCode()) {
+        case KeyEvent.VK_F :
+         applyDisplayMode(DisplayMode.WINDOWED);
+         break;
+        case KeyEvent.VK_G :
+         applyDisplayMode(DisplayMode.BORDERLESS);
+         break;
+        case KeyEvent.VK_H :
+         applyDisplayMode(DisplayMode.FULLSCREEN);
+         break;
         case KeyEvent.VK_M:              
             soundOn = !soundOn;
             if (soundOn)  startBackgroundMusic("/bgm.wav");
@@ -541,14 +535,17 @@ if (interWaveTimer > 0) {
         coins -= 100;
     }
           break;
-        case KeyEvent.VK_B: 
-            break;
+        
         default: return;
     }
     repaint();
     return;           
-}
-  
+} 
+        
+        
+     
+    
+      
              
         case KeyEvent.VK_OPEN_BRACKET:      
         case KeyEvent.VK_LEFT:
