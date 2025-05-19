@@ -131,5 +131,15 @@ SettingsMenu 視窗模式切換
 
 
 ## UML 類別圖 (Class Diagram)
-![image](https://github.com/user-attachments/assets/21922d38-773d-4ddc-bd49-a5619882ca5b)
+
+![spaceshipgame_uml_full](https://github.com/user-attachments/assets/d0915e38-7005-4aa5-909d-48291da06d54)
+
+
+## 流程圖 (Flow Chart)
+
+![SpaceShipGame_Flow_Detailed](https://github.com/user-attachments/assets/0cf5c8a5-6fb6-4cec-a953-c40f8ddeb17d)
+
+## 序列圖 (Sequence Diagram)
+
+![SpaceShipGame_AllFlows](https://github.com/user-attachments/assets/78416ea5-518e-46c5-b849-96c24ca14b05)
 
