@@ -21,7 +21,7 @@
 
 | 分工項目    | 主要負責人   | 內容摘要 |
 | ------- | ------- | --------------- |
-| 遊戲核心程式 | 江元宏 | 飛船進退、碰撞偵測、wave系統 |
+| 遊戲核心程式 | 江元宏 | 飛船進退、碰撞偵測、wave系統、停滯後退模式|
 | 遊戲核心程式 | 闕辰峻 | 子彈碰撞邏輯、子彈飛行軌跡繪製 |
 | 美術與 UI  | 江元宏 | 背景星空、選單設定、血條雷達 |
 | 美術與 UI  | 闕辰峻 | 駕駛艙圖片、血條雷達位置微調 |
@@ -68,17 +68,17 @@
 ### 系統需求
 
 * **作業系統**：Windows／macOS／Linux
-* **Java**：JDK 17 以上
+* **Java**：JDK 24 以上
 
 ### 下載與運行
 
-1. 下載 `SpaceShipGame.jar` 與 `resources/` 資料夾並置於同一目錄。
+1. 下載 `SSG.jar`。
 2. 開啟終端機執行：
 
    ```bash
-   java -jar SpaceShipGame.jar              # 預設全螢幕
-   java -jar SpaceShipGame.jar --windowed   # 一般視窗
-   java -jar SpaceShipGame.jar --borderless # 無邊框
+   java -jar SSG.jar              # 預設全螢幕
+   java -jar SSG.jar   --windowed   # 一般視窗
+   java -jar SSG.jar   --borderless # 無邊框
    ```
 
 ---
