@@ -128,3 +128,8 @@ Bullet 初始化方向與 Player 面向判斷修正
 選單新增全螢幕 / 無邊框視窗模式
 
 SettingsMenu 視窗模式切換
+
+
+## UML 類別圖 (Class Diagram)
+![image](https://github.com/user-attachments/assets/21922d38-773d-4ddc-bd49-a5619882ca5b)
+
